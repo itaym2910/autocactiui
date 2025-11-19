@@ -147,12 +147,22 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
         
         const nodesWithoutPreviews = prev.nodes.filter(n => !n.data.isPreview).map(n => ({ ...n, selected: n.id === sourceNode.id }));
         const edgesWithoutPreviews = prev.edges.filter(e => !e.data.isPreview);
-        const nodeIdsOnMap = new Set(nodesWithoutPreviews.map(n => n.id));
 
-        const neighborsToConnect = allNeighbors.filter(n => n.ip && nodeIdsOnMap.has(n.ip));
-        const neighborsToAddAsPreview = allNeighbors.filter(n => n.ip ? !nodeIdsOnMap.has(n.ip) : true);
-        
+        const nodeIdsOnMap = new Set(nodesWithoutPreviews.map(n => n.id));
+        const hostnamesOnMap = new Set(nodesWithoutPreviews.filter(n => n.data?.hostname).map(n => n.data.hostname));
+     
+        const neighborsToAddAsPreview = allNeighbors.filter(n => {
+            if (n.ip) {
+                return !nodeIdsOnMap.has(n.ip);
+            } else {
+                return !hostnamesOnMap.has(n.hostname);
+            }
+        });
+       
+       
         const edgesToCreate = [];
+        const existingConnections = new Set(edgesWithoutPreviews.map(e => [e.source, e.target].sort().join('--')));
+        const neighborsToConnect = allNeighbors.filter(n => n.ip && nodeIdsOnMap.has(n.ip));
         
         neighborsToConnect.forEach(neighbor => {
             const edgeId = `e-${sourceNode.id}-${neighbor.ip}-${neighbor.interface.replace(/[/]/g, '-')}`;
