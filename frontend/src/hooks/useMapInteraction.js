@@ -121,21 +121,14 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
       const allNeighbors = response.data.neighbors;
       
       // --- Preloading Enhancement ---
-      // Proactively fetch details for all potential neighbors in the background.
-      // This populates the API cache, making subsequent device additions feel instantaneous.
-      // We don't `await` these calls; they run as fire-and-forget promises.
       allNeighbors.forEach(neighbor => {
         if (neighbor.ip) {
           // Preload device info (icon, model, etc.)
           api.getDeviceInfo(neighbor.ip).catch(err => {
-            // Silently fail. If the device is un-discoverable, the error will be
-            // handled properly during the actual "add" process with a fallback node.
             console.warn(`Preload failed for device info ${neighbor.ip}:`, err.message);
           });
           // Preload the next level of neighbors ("grandchildren")
           api.getDeviceNeighbors(neighbor.ip).catch(err => {
-            // Silently fail. A user will still be able to add the node,
-            // but its own neighbors might not be preloaded if this call fails.
             console.warn(`Preload failed for neighbors of ${neighbor.ip}:`, err.message);
           });
         }
@@ -147,12 +140,22 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
         
         const nodesWithoutPreviews = prev.nodes.filter(n => !n.data.isPreview).map(n => ({ ...n, selected: n.id === sourceNode.id }));
         const edgesWithoutPreviews = prev.edges.filter(e => !e.data.isPreview);
-        const nodeIdsOnMap = new Set(nodesWithoutPreviews.map(n => n.id));
 
-        const neighborsToConnect = allNeighbors.filter(n => n.ip && nodeIdsOnMap.has(n.ip));
-        const neighborsToAddAsPreview = allNeighbors.filter(n => n.ip ? !nodeIdsOnMap.has(n.ip) : true);
-        
+        const nodeIdsOnMap = new Set(nodesWithoutPreviews.map(n => n.id));
+        const hostnamesOnMap = new Set(nodesWithoutPreviews.filter(n => n.data?.hostname).map(n => n.data.hostname));
+     
+        const neighborsToAddAsPreview = allNeighbors.filter(n => {
+            if (n.ip) {
+                return !nodeIdsOnMap.has(n.ip);
+            } else {
+                return !hostnamesOnMap.has(n.hostname);
+            }
+        });
+       
+       
         const edgesToCreate = [];
+        const existingConnections = new Set(edgesWithoutPreviews.map(e => [e.source, e.target].sort().join('--')));
+        const neighborsToConnect = allNeighbors.filter(n => n.ip && nodeIdsOnMap.has(n.ip));
         
         neighborsToConnect.forEach(neighbor => {
             const edgeId = `e-${sourceNode.id}-${neighbor.ip}-${neighbor.interface.replace(/[/]/g, '-')}`;
@@ -176,6 +179,56 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
       setLoading(false);
     }
   }, [setState, t, onShowNeighborPopup, setSelectedElements]);
+
+  // NEW: Full Scan Handler
+  const handleFullScan = useCallback(async (setLoading, setError) => {
+    const sourceNode = selectedElements[0];
+    if (!sourceNode || !sourceNode.data.ip) return;
+
+    setLoading(true);
+    setError('');
+    
+    try {
+        // Calling the new API endpoint
+        const response = await api.getFullDeviceNeighbors(sourceNode.data.ip); 
+        const allNeighbors = response.data.neighbors;
+
+        // --- Preloading Enhancement (Same as regular scan) ---
+        allNeighbors.forEach(neighbor => {
+            if (neighbor.ip) {
+                api.getDeviceInfo(neighbor.ip).catch(() => {});
+            }
+        });
+
+        // Update the popup list without modifying the map state yet
+        setState(prev => {
+            if (!prev) return prev;
+
+            // We only need to calculate which neighbors are not already on the map
+            // to update the `currentNeighbors` state that the popup consumes.
+            const nodesWithoutPreviews = prev.nodes.filter(n => !n.data.isPreview);
+            const nodeIdsOnMap = new Set(nodesWithoutPreviews.map(n => n.id));
+            const hostnamesOnMap = new Set(nodesWithoutPreviews.filter(n => n.data?.hostname).map(n => n.data.hostname));
+
+            const neighborsToAddAsPreview = allNeighbors.filter(n => {
+                if (n.ip) {
+                    return !nodeIdsOnMap.has(n.ip);
+                } else {
+                    return !hostnamesOnMap.has(n.hostname);
+                }
+            });
+
+            setCurrentNeighbors(neighborsToAddAsPreview);
+            return prev; 
+        });
+
+    } catch (err) {
+        console.error("Full scan failed", err);
+        setError(t('app.errorFullScan', { ip: sourceNode.data.ip }) || "Full scan failed.");
+    } finally {
+        setLoading(false);
+    }
+  }, [selectedElements, setState, t]);
 
   const confirmNeighbor = useCallback(async (neighborGroup, sourceNodeId, setLoading, setError, isBatchOperation = false) => {
     setLoading(true);
@@ -498,6 +551,7 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
     confirmPreviewNode,
     setLoading: setIsLoading,
     setError: setError,
+    handleFullScan,
     setState,
   };
 };

@@ -3,7 +3,7 @@ import axios from 'axios';
 
 // Create an Axios instance configured to use the backend URL from environment variables.
 const apiClient = axios.create({
-    baseURL: process.env.REACT_APP_API_URL
+    baseURL: "http://127.0.0.1:5000"
 });
 
 // --- Caching Configuration ---
@@ -125,6 +125,15 @@ export const getDeviceInfo = (ip) => {
  */
 export const getDeviceNeighbors = (ip) => {
     return cachedGet(`/get-device-neighbors/${ip}`);
+};
+
+/**
+ * Fetches the list of Full neighbors (including extended scan) for a given device.
+ * @param {string} ip - The IP address of the device.
+ * @returns {Promise<object>} A promise that resolves to the list of neighbors.
+ */
+export const getFullDeviceNeighbors = (ip) => {
+    return cachedGet(`/get-full-neighbors/${ip}`);
 };
 
 /**

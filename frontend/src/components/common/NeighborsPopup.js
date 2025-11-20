@@ -31,6 +31,14 @@ const CheckIcon = () => (
     </svg>
 );
 
+const GlobeIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M2 12H22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M12 2A15.3 15.3 0 0 1 16 12A15.3 15.3 0 0 1 12 22A15.3 15.3 0 0 1 8 12A15.3 15.3 0 0 1 12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
 
 const NeighborsPopup = ({
   isOpen,
@@ -39,6 +47,7 @@ const NeighborsPopup = ({
   onAddNeighbor,
   onAddSelectedNeighbors,
   onClose,
+  onFullScan,
   isLoading,
 }) => {
   const [searchTerm, setSearchTerm] = React.useState("");
@@ -173,9 +182,12 @@ const NeighborsPopup = ({
         >
           <CloseIcon />
         </button>
+        
         <div className="neighbor-popup-header">
-          <h2>{t("neighborsPopup.title", { hostname: sourceHostname })}</h2>
-          <p>{t("neighborsPopup.subtitle", { count: neighbors.length })}</p>
+            <div>
+                <h2>{t("neighborsPopup.title", { hostname: sourceHostname })}</h2>
+                <p>{t("neighborsPopup.subtitle", { count: neighbors.length })}</p>
+            </div>
 
           <div className="search-bar">
             <SearchIcon />
@@ -243,8 +255,12 @@ const NeighborsPopup = ({
               </div>
             )}
           </div>
-            {filteredNeighbors.length > 0 && (
-                <div style={{ flexShrink: 0, paddingTop: '16px', borderTop: '1px solid var(--border-color)', marginTop: '16px' }}>
+            
+            {/* FOOTER SECTION */}
+            <div className="neighbor-popup-footer">
+                
+                {/* 1. Add Selected Button */}
+                {filteredNeighbors.length > 0 && (
                     <button 
                       className="add-neighbor-button" 
                       onClick={handleAddSelectedClick}
@@ -252,8 +268,22 @@ const NeighborsPopup = ({
                     >
                        {t('neighborsPopup.addSelected', { count: selectedNeighbors.size })}
                     </button>
-                </div>
-            )}
+                )}
+
+                {/* 2. Full Scan Button (Identical style to Add Selected) */}
+                {onFullScan && (
+                    <button 
+                        className="full-scan-button"
+                        onClick={onFullScan}
+                        disabled={isLoading}
+                        title={t("neighborsPopup.fullScanTooltip") || "Perform Full Scan"}
+                    >
+                        <div style={{ width: '16px', height: '16px', display: 'flex' }}><GlobeIcon /></div>
+                        <span>{t("neighborsPopup.fullScan") || "Full Scan"}</span>
+                    </button>
+                )}
+            </div>
+
         </div>
       </div>
     </div>

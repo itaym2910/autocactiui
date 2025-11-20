@@ -1,4 +1,6 @@
 /* frontend/src/components/common/NeighborsPopup.css */
+
+/* --- Overlay & Container --- */
 .neighbor-popup-overlay {
     position: fixed;
     top: 0;
@@ -45,6 +47,7 @@
     }
 }
 
+/* --- Close Button --- */
 .neighbor-popup-close-button {
     position: absolute;
     top: 16px;
@@ -61,6 +64,7 @@
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
+    z-index: 10;
 }
 
 .rtl .neighbor-popup-close-button {
@@ -80,6 +84,7 @@
     height: 18px;
 }
 
+/* --- Header Section --- */
 .neighbor-popup-header {
     flex-shrink: 0;
     padding-bottom: 20px;
@@ -108,29 +113,7 @@
     font-weight: 500;
 }
 
-.neighbor-popup-body {
-    display: flex;
-    flex-direction: column;
-    flex-grow: 1;
-    min-height: 0;
-}
-
-.neighbor-grid-panel {
-    flex-grow: 1;
-    overflow-y: auto;
-    padding-top: 8px;
-    padding-bottom: 8px;
-    padding-right: 12px;
-    margin-right: -4px;
-}
-
-.rtl .neighbor-grid-panel {
-    padding-right: 0;
-    padding-left: 12px;
-    margin-right: 0;
-    margin-left: -4px;
-}
-
+/* --- Search Bar --- */
 .search-bar {
     position: relative;
     width: 100%;
@@ -182,78 +165,12 @@
     box-shadow: 0 0 0 4px rgba(var(--accent-primary-rgb, 59, 130, 246), 0.1);
 }
 
-.neighbor-grid {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 16px;
-}
-
-.neighbor-item {
-    aspect-ratio: 1 / 1;
-    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-secondary) 100%);
-    border: 2px solid var(--border-color-light);
-    border-radius: 12px;
-    /* Adjusted padding: Increased top padding to prevent overlap with the checkbox */
-    padding: 36px 16px 16px 16px;
+/* --- Body Layout --- */
+.neighbor-popup-body {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: space-between;
-    text-align: center;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-    cursor: pointer;
-    position: relative;
-}
-
-.neighbor-item:hover {
-    transform: translateY(-4px);
-    border-color: var(--accent-primary);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-    background: var(--bg-primary);
-}
-
-.neighbor-item.selected {
-    border-color: var(--accent-primary);
-    box-shadow: 0 0 0 2px var(--accent-primary), 0 8px 24px rgba(0, 0, 0, 0.12);
-    background: color-mix(in srgb, var(--accent-primary) 8%, var(--bg-primary));
-}
-
-
-.selection-checkbox {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    width: 22px;
-    height: 22px;
-    border-radius: 6px;
-    border: 2px solid var(--border-color);
-    background-color: var(--bg-primary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    pointer-events: none; /* The parent li handles the click */
-}
-
-.rtl .selection-checkbox {
-    left: auto;
-    right: 10px;
-}
-
-.neighbor-item.selected .selection-checkbox {
-    background-color: var(--accent-primary);
-    border-color: var(--accent-primary);
-    color: white;
-}
-
-.selection-checkbox svg {
-    width: 16px;
-    height: 16px;
-    stroke-width: 3;
+    flex-grow: 1;
+    min-height: 0;
 }
 
 .neighbor-popup-actions {
@@ -279,7 +196,98 @@
     color: var(--accent-primary);
 }
 
+/* --- Grid Panel --- */
+.neighbor-grid-panel {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    padding-right: 12px;
+    margin-right: -4px;
+}
 
+.rtl .neighbor-grid-panel {
+    padding-right: 0;
+    padding-left: 12px;
+    margin-right: 0;
+    margin-left: -4px;
+}
+
+.neighbor-grid {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 16px;
+}
+
+/* --- Neighbor Item Card --- */
+.neighbor-item {
+    aspect-ratio: 1 / 1;
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-secondary) 100%);
+    border: 2px solid var(--border-color-light);
+    border-radius: 12px;
+    padding: 36px 16px 16px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    text-align: center;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    cursor: pointer;
+    position: relative;
+}
+
+.neighbor-item:hover {
+    transform: translateY(-4px);
+    border-color: var(--accent-primary);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    background: var(--bg-primary);
+}
+
+.neighbor-item.selected {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px var(--accent-primary), 0 8px 24px rgba(0, 0, 0, 0.12);
+    background: color-mix(in srgb, var(--accent-primary) 8%, var(--bg-primary));
+}
+
+/* --- Selection Checkbox --- */
+.selection-checkbox {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    border: 2px solid var(--border-color);
+    background-color: var(--bg-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    pointer-events: none;
+}
+
+.rtl .selection-checkbox {
+    left: auto;
+    right: 10px;
+}
+
+.neighbor-item.selected .selection-checkbox {
+    background-color: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: white;
+}
+
+.selection-checkbox svg {
+    width: 16px;
+    height: 16px;
+    stroke-width: 3;
+}
+
+/* --- Neighbor Info Text --- */
 .neighbor-info {
     display: flex;
     flex-direction: column;
@@ -307,6 +315,7 @@
     font-family: 'Courier New', monospace;
 }
 
+/* ... [Keep .add-neighbor-button styles as they were] ... */
 .add-neighbor-button {
     padding: 8px 16px;
     width: 100%;
@@ -343,71 +352,105 @@
     box-shadow: none;
 }
 
-
-.no-results {
-    width: 100%;
-    height: 100%;
+/* --- Footer Section --- */
+.neighbor-popup-footer {
+    flex-shrink: 0;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-color);
+    margin-top: 16px;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    gap: 12px; 
+}
+
+/* --- Full Scan Button (Updated to match Add Button) --- */
+.full-scan-button {
+    /* Match add-neighbor-button properties exactly */
+    padding: 8px 16px;
+    width: 100%;
+    font-size: 0.85rem;
+    font-weight: 700;
+    /* Same Color (Green Gradient) */
+    background: rgb(39, 131, 253); 
+    color: var(--text-on-accent);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    
+    /* Flex alignment for the icon */
+    display: flex;
     align-items: center;
-    color: var(--text-secondary);
-    font-size: 1.1rem;
-    grid-column: 1 / -1;
-    gap: 12px;
-    padding: 48px 24px;
+    justify-content: center;
+    gap: 8px;
 }
 
-.no-results::before {
-    content: "🔍";
-    font-size: 3rem;
-    opacity: 0.3;
+.full-scan-button:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    filter: brightness(1.1);
 }
 
-.no-results-text {
-    font-weight: 600;
-    opacity: 0.7;
+.full-scan-button:active {
+    transform: scale(0.98);
 }
 
-/* --- SCROLLBAR STYLES --- */
+.full-scan-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    filter: grayscale(40%);
+    transform: none;
+    box-shadow: none;
+}
+
+/* Optional: Icon specific tweak inside the button */
+.full-scan-button svg {
+    width: 18px;
+    height: 18px;
+    stroke-width: 2.5;
+}
+
+/* Rotating animation for the icon only on hover */
+.full-scan-button:hover svg {
+    transform: rotate(180deg);
+    transition: transform 0.5s ease;
+}
+
+/* --- Modern Scrollbar Styles --- */
+
+/* Target the scrollable panel */
+.neighbor-grid-panel {
+    /* Firefox support */
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
+}
+
+/* Webkit support (Chrome, Edge, Safari) */
 .neighbor-grid-panel::-webkit-scrollbar {
-    width: 10px;
+    width: 8px; /* Thin but clickable */
 }
 
 .neighbor-grid-panel::-webkit-scrollbar-track {
-    background: transparent;
-    border-radius: 10px;
+    background: transparent; /* Transparent track for a floating look */
+    margin: 4px 0;
 }
 
 .neighbor-grid-panel::-webkit-scrollbar-thumb {
-    background-color: var(--accent-secondary);
-    border-radius: 10px;
+    background-color: var(--border-color); /* Subtle grey by default */
+    border-radius: 20px; /* Fully rounded pill shape */
+    
+    /* This creates the "floating" effect with padding around the bar */
     border: 2px solid transparent;
-    background-clip: padding-box;
+    background-clip: content-box;
+    
+    transition: background-color 0.2s ease;
 }
 
+/* Hover State - Lights up with your theme color */
 .neighbor-grid-panel::-webkit-scrollbar-thumb:hover {
-    background-color: var(--accent-primary);
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-    .neighbor-popup-content {
-        width: 95%;
-        height: 85vh;
-        padding: 24px;
-    }
-
-    .neighbor-popup-header h2 {
-        font-size: 1.5rem;
-    }
-
-    .neighbor-grid {
-        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-        gap: 12px;
-    }
-
-    .neighbor-item {
-        padding: 36px 12px 12px 12px;
-    }
+    background-color: var(--accent-primary); /* Blue/Theme color */
+    border-color: transparent;
 }

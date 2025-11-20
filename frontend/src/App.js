@@ -88,6 +88,7 @@ function App() {
     selectAllByType,
     confirmPreviewNode,
     confirmNeighbor,
+    handleFullScan, // <--- 1. DESTRUCTURE THIS NEW FUNCTION
     setLoading: setMapHookLoading, // Use setter from map hook
     setError: setMapHookError, // Use setter from map hook
     setState: setMapState,
@@ -444,6 +445,8 @@ function App() {
               data={uploadSuccessData} 
               onClose={() => setUploadSuccessData(null)} 
             />
+            
+            {/* 2. PASS THE PROP HERE */}
             <NeighborsPopup
               isOpen={neighborPopup.isOpen}
               neighbors={neighborPopup.neighbors}
@@ -452,6 +455,7 @@ function App() {
               onAddSelectedNeighbors={handleAddSelectedNeighbors}
               onClose={handleCloseNeighborPopup}
               isLoading={mapInteractionLoading}
+              onFullScan={() => handleFullScan(setIsLoading, setAppError)}
             />
           </div>
         </div>
