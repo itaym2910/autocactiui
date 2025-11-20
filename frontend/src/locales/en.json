@@ -128,6 +128,10 @@
     "fullScan": "Full Scan",
     "fullScanTooltip": "Perform a deep scan to find all neighbors via SNMP",
     "regularDevices": "Regular Devices",
-    "fullScanDevices": "Full Scan Devices"
+    "fullScanDevices": "Full Scan Devices",
+    "selectLinks": "Select Links",
+    "selectLinksTitle": "Select interfaces for {{hostname}}",
+    "cancel": "Cancel",
+    "addLinks": "Add {{count}} Links"
   }
 }

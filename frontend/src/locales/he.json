@@ -125,9 +125,13 @@
     "addSelected": "הוסף נבחרים ({{count}})",
     "selectAll": "בחר הכל",
     "deselectAll": "בטל בחירת הכל",
-    "fullScan": "סקירה מלאה", 
+    "fullScan": "סקירה מלאה",
     "fullScanTooltip": "סורק שכנים דרך Snmp",
     "regularDevices": "התקנים רגילים",
-    "fullScanDevices": "התקנים מסריקה מלאה"
+    "fullScanDevices": "התקנים מסריקה מלאה",
+    "selectLinks": "בחר חיבורים",
+    "selectLinksTitle": "בחר ממשקים עבור {{hostname}}",
+    "cancel": "ביטול",
+    "addLinks": "הוסף {{count}} חיבורים"
   }
 }
