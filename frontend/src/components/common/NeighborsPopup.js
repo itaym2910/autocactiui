@@ -79,6 +79,7 @@ const NeighborsPopup = ({
     };
   }, [isOpen, onClose]);
 
+  // Group neighbors by IP/Hostname, preserving the 'isFullScan' flag
   const groupedNeighbors = React.useMemo(() => {
     const neighborMap = new Map();
     neighbors.forEach(neighbor => {
@@ -113,6 +114,15 @@ const NeighborsPopup = ({
     ), 
   [groupedNeighbors, searchTerm]);
 
+  // Split into Standard and Full Scan results
+  const regularNeighbors = React.useMemo(() => 
+    filteredNeighbors.filter(n => !n.isFullScan), 
+  [filteredNeighbors]);
+
+  const fullScanNeighbors = React.useMemo(() => 
+    filteredNeighbors.filter(n => n.isFullScan), 
+  [filteredNeighbors]);
+
   const filteredKeys = React.useMemo(() => new Set(filteredNeighbors.map(n => n.ip || n.hostname)), [filteredNeighbors]);
   const areAllFilteredSelected = React.useMemo(() => {
       if (filteredKeys.size === 0) return false;
@@ -121,14 +131,12 @@ const NeighborsPopup = ({
 
   const handleSelectAllClick = () => {
       if (areAllFilteredSelected) {
-          // Deselect all filtered
           setSelectedNeighbors(prev => {
               const newSelection = new Set(prev);
               filteredKeys.forEach(key => newSelection.delete(key));
               return newSelection;
           });
       } else {
-          // Select all filtered
           setSelectedNeighbors(prev => {
               const newSelection = new Set(prev);
               filteredKeys.forEach(key => newSelection.add(key));
@@ -164,6 +172,45 @@ const NeighborsPopup = ({
     }
   };
 
+  // Helper function to render a grid of neighbors
+  const renderNeighborGrid = (groups) => (
+      <ul className="neighbor-grid">
+        {groups.map((group) => {
+          const key = group.ip || group.hostname;
+          const isSelected = selectedNeighbors.has(key);
+          return (
+            <li
+              key={key}
+              className={`neighbor-item ${isSelected ? 'selected' : ''}`}
+              onClick={() => handleToggleSelection(key)}
+            >
+              <div className="selection-checkbox">
+                {isSelected && <CheckIcon />}
+              </div>
+              <div className="neighbor-info">
+                <strong>{group.hostname}</strong>
+                <small>{group.ip || ' '}</small>
+                {group.links.length > 1 && (
+                  <small style={{ fontWeight: 'bold' }}>
+                    {t('neighborsPopup.multipleLinks', { count: group.links.length })}
+                  </small>
+                )}
+              </div>
+              <button
+                className="add-neighbor-button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAddNeighbor(group);
+                }}
+                disabled={isLoading}
+              >
+                {t("sidebar.add")}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+  );
 
   if (!isOpen) {
     return null;
@@ -209,57 +256,39 @@ const NeighborsPopup = ({
                     </button>
                 )}
             </div>
+          
           <div className="neighbor-grid-panel">
-            {filteredNeighbors.length > 0 ? (
-              <ul className="neighbor-grid">
-                {filteredNeighbors.map((group) => {
-                  const key = group.ip || group.hostname;
-                  const isSelected = selectedNeighbors.has(key);
-                  return (
-                    <li
-                      key={key}
-                      className={`neighbor-item ${isSelected ? 'selected' : ''}`}
-                      onClick={() => handleToggleSelection(key)}
-                    >
-                      <div className="selection-checkbox">
-                        {isSelected && <CheckIcon />}
-                      </div>
-                      <div className="neighbor-info">
-                        <strong>{group.hostname}</strong>
-                        <small>{group.ip || ' '}</small>
-                        {group.links.length > 1 && (
-                          <small style={{ fontWeight: 'bold' }}>
-                            {t('neighborsPopup.multipleLinks', { count: group.links.length })}
-                          </small>
-                        )}
-                      </div>
-                      <button
-                        className="add-neighbor-button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onAddNeighbor(group);
-                        }}
-                        disabled={isLoading}
-                      >
-                        {t("sidebar.add")}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : (
+            {filteredNeighbors.length === 0 ? (
               <div className="no-results">
                 <span className="no-results-text">
                   {t("neighborsPopup.noResults")}
                 </span>
               </div>
+            ) : (
+                <>
+                    {/* Section 1: Regular Devices */}
+                    {regularNeighbors.length > 0 && (
+                        <div className="neighbor-section">
+                            <h3 className="neighbor-section-title">{t("neighborsPopup.regularDevices") || "Regular Devices"}</h3>
+                            {renderNeighborGrid(regularNeighbors)}
+                        </div>
+                    )}
+
+                    {/* Section 2: Full Scan Devices (Only shows if data exists) */}
+                    {fullScanNeighbors.length > 0 && (
+                        <div className="neighbor-section">
+                            <h3 className="neighbor-section-title full-scan-title">
+                                {t("neighborsPopup.fullScanDevices") || "Full Scan Devices"}
+                                <span className="badge">{fullScanNeighbors.length}</span>
+                            </h3>
+                            {renderNeighborGrid(fullScanNeighbors)}
+                        </div>
+                    )}
+                </>
             )}
           </div>
             
-            {/* FOOTER SECTION */}
             <div className="neighbor-popup-footer">
-                
-                {/* 1. Add Selected Button */}
                 {filteredNeighbors.length > 0 && (
                     <button 
                       className="add-neighbor-button" 
@@ -270,7 +299,6 @@ const NeighborsPopup = ({
                     </button>
                 )}
 
-                {/* 2. Full Scan Button (Identical style to Add Selected) */}
                 {onFullScan && (
                     <button 
                         className="full-scan-button"

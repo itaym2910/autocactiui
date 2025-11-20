@@ -124,6 +124,8 @@
     "multipleLinks": "{{count}} קישורים",
     "addSelected": "הוסף נבחרים ({{count}})",
     "selectAll": "בחר הכל",
-    "deselectAll": "בטל בחירת הכל"
+    "deselectAll": "בטל בחירת הכל",
+    "fullScan": "סקירה מלאה", 
+    "fullScanTooltip": "סורק שכנים דרך Snmp"
   }
 }

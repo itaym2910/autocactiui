@@ -124,6 +124,8 @@
     "multipleLinks": "{{count}} links",
     "addSelected": "Add Selected ({{count}})",
     "selectAll": "Select All",
-    "deselectAll": "Deselect All"
+    "deselectAll": "Deselect All",
+    "fullScan": "Full Scan",
+    "fullScanTooltip": "Perform a deep scan to find all neighbors via SNMP"
   }
 }

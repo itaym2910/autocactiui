@@ -454,3 +454,36 @@
     background-color: var(--accent-primary); /* Blue/Theme color */
     border-color: transparent;
 }
+
+/* Add these styles to the end of NeighborsPopup.css */
+
+/* --- Section Separation --- */
+.neighbor-section {
+    margin-bottom: 24px;
+}
+
+.neighbor-section-title {
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    margin: 0 0 12px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color-light);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.full-scan-title {
+    color: var(--accent-primary); /* Highlight the full scan header */
+}
+
+.badge {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+}

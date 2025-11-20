@@ -96,6 +96,17 @@ def get_device_neighbors_endpoint(ip_address):
     if neighbors:
         return jsonify(neighbors)
     return jsonify({"error": "Device not found or has no neighbors"}), 404
+
+# --- NEW ENDPOINT FOR FULL SCAN ---
+@app.route('/get-full-neighbors/<ip_address>', methods=['GET'])
+@token_required
+def get_full_device_neighbors_endpoint(ip_address):
+    """Gets extended neighbors (CDP + ARP/IP scan) for a device."""
+    neighbors = services.get_full_device_neighbors(ip_address)
+    if neighbors:
+        return jsonify(neighbors)
+    return jsonify({"error": "Device not found or has no neighbors"}), 404
+# ----------------------------------
     
 @app.route('/config-template', methods=['GET'])
 @token_required
