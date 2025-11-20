@@ -126,6 +126,8 @@
     "selectAll": "בחר הכל",
     "deselectAll": "בטל בחירת הכל",
     "fullScan": "סקירה מלאה", 
-    "fullScanTooltip": "סורק שכנים דרך Snmp"
+    "fullScanTooltip": "סורק שכנים דרך Snmp",
+    "regularDevices": "התקנים רגילים",
+    "fullScanDevices": "התקנים מסריקה מלאה"
   }
 }

@@ -126,6 +126,8 @@
     "selectAll": "Select All",
     "deselectAll": "Deselect All",
     "fullScan": "Full Scan",
-    "fullScanTooltip": "Perform a deep scan to find all neighbors via SNMP"
+    "fullScanTooltip": "Perform a deep scan to find all neighbors via SNMP",
+    "regularDevices": "Regular Devices",
+    "fullScanDevices": "Full Scan Devices"
   }
 }
