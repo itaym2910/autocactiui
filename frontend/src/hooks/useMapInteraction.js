@@ -9,13 +9,13 @@ import { useNodeManagement } from './useNodeManagement';
 import { useTooling } from './useTooling';
 import { calculateSnaps } from './useSnapping';
 
-
 /**
  * Creates a React Flow edge object.
  */
 const createEdgeObject = (sourceId, targetId, neighborInfo, isPreview = false) => {
     const { interface: iface, bandwidth } = neighborInfo;
     const safeInterface = iface ? iface.replace(/[/]/g, '-') : `unknown-${Math.random()}`;
+    // The ID ensures every link is unique based on Source + Target + Interface
     const edgeId = `e-${sourceId}-${targetId}-${safeInterface}`;
 
     const style = isPreview
@@ -36,7 +36,6 @@ const createEdgeObject = (sourceId, targetId, neighborInfo, isPreview = false) =
     };
 };
 
-
 export const useMapInteraction = (theme, onShowNeighborPopup) => {
   const { state, setState, undo, redo, resetState } = useHistoryState();
   const { nodes, edges } = state || { nodes: [], edges: [] };
@@ -52,10 +51,10 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
   const nodesRef = useRef(nodes);
   const edgesRef = useRef(edges);
   const currentNeighborsRef = useRef(currentNeighbors);
+  
   useEffect(() => { nodesRef.current = nodes; }, [nodes]);
   useEffect(() => { edgesRef.current = edges; }, [edges]);
   useEffect(() => { currentNeighborsRef.current = currentNeighbors; }, [currentNeighbors]);
-
 
   const {
     createNodeObject,
@@ -157,7 +156,7 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
     }
   }, [setState, t, onShowNeighborPopup, setSelectedElements]);
 
-  // --- 2. FULL SCAN (FIXED) ---
+  // --- 2. FULL SCAN ---
   const handleFullScan = useCallback(async (setLoading, setError) => {
     const sourceNode = selectedElements[0];
     if (!sourceNode || !sourceNode.data.ip) return;
@@ -207,8 +206,7 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
             // 5. Update Local State AND Notify Parent Component
             setCurrentNeighbors(combinedNeighbors);
             
-            // !!! THIS LINE WAS MISSING !!!
-            // Use the callback to update App.js state, forcing the popup to re-render
+            // Forces the popup to re-render with the combined list (including multi-link devices)
             onShowNeighborPopup(combinedNeighbors, sourceNode); 
 
             return prev; 
@@ -222,6 +220,7 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
     }
   }, [selectedElements, setState, t, onShowNeighborPopup]);
 
+  // --- 3. CONFIRM NEIGHBOR (Modified to show all links immediately) ---
   const confirmNeighbor = useCallback(async (neighborGroup, sourceNodeId, setLoading, setError, isBatchOperation = false) => {
     setLoading(true);
     setError('');
@@ -261,14 +260,20 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
     };
 
     if (isEndDevice) {
+        // End devices usually have just 1 link, but the loop handles array safely anyway
         setState(prev => {
             const sourceNode = prev.nodes.find(n => n.id === sourceNodeId);
             if (!sourceNode) return prev;
-            const linkInfo = neighborGroup.links[0]; 
+            
             const position = { x: sourceNode.position.x + (Math.random() * 300 - 150), y: sourceNode.position.y + 200 };
             const newNode = createNodeObject({ ip: '', hostname: hostname, type: 'Switch' }, position);
-            const newEdge = createEdgeObject(sourceNodeId, newNode.id, linkInfo, false);
-            return handleStateUpdate(prev, newNode, [newEdge]);
+            
+            // Loop through selected links
+            const newEdges = neighborGroup.links.map(link => 
+                createEdgeObject(sourceNodeId, newNode.id, link, false)
+            );
+
+            return handleStateUpdate(prev, newNode, newEdges);
         });
         setLoading(false);
         return;
@@ -292,6 +297,7 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
             }
         }
 
+        // Fetch neighbors of the NEW node to see if it connects back to existing map nodes
         let allNeighborsOfNewNode = [];
         try {
             const neighborsResponse = await api.getDeviceNeighbors(neighborIp);
@@ -301,24 +307,34 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
         } catch (neighborError) {}
 
         setState(prev => {
+            // 1. Create Edges from Source -> New Node (using the links passed from popup)
             const newEdgesFromSource = neighborGroup.links.map(link => 
                 createEdgeObject(sourceNodeId, confirmedNode.id, link, false)
             );
+            
             let tempState = handleStateUpdate(prev, confirmedNode, newEdgesFromSource);
+            
             const permanentNodeIdsOnMap = new Set(tempState.nodes.map(n => n.id));
             const existingEdgeIds = new Set(tempState.edges.map(e => e.id));
+
+            // 2. Identify and create Reverse Connections (New Node -> Existing Nodes)
+            // MODIFICATION: Removed `&& n.ip !== sourceNodeId` check.
+            // This allows the new node to immediately connect back to the Source Node if a link exists.
             const neighborsToConnect = allNeighborsOfNewNode.filter(n => 
-                n.ip && n.ip !== sourceNodeId && permanentNodeIdsOnMap.has(n.ip)
+                n.ip && permanentNodeIdsOnMap.has(n.ip)
             );
+
             neighborsToConnect.forEach(neighbor => {
                 const edgeId = `e-${confirmedNode.id}-${neighbor.ip}-${neighbor.interface.replace(/[/]/g, '-')}`;
                 if (!existingEdgeIds.has(edgeId)) {
                     tempState.edges.push(createEdgeObject(confirmedNode.id, neighbor.ip, neighbor, false));
                 }
             });
+            
             return tempState;
         });
     } catch (err) {
+        console.error(err);
         setError(t('app.errorAddNeighbor', { ip: neighborIp }));
         clearPreviewElements();
     } finally {
@@ -329,6 +345,7 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
   const confirmPreviewNode = useCallback(async (nodeToConfirm, setLoading, setError) => {
     const edge = edgesRef.current.find(e => e.target === nodeToConfirm.id && e.data.isPreview);
     if (!edge) { setError(t('app.errorAddNeighborGeneric')); return; }
+    // When confirming a preview, we wrap the single link in an array to match the expected format
     const neighborGroup = { ...nodeToConfirm.data, links: [{ ...nodeToConfirm.data, interface: edge.data.interface }] };
     await confirmNeighbor(neighborGroup, edge.source, setLoading, setError);
   }, [confirmNeighbor, t]);
@@ -385,7 +402,6 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
         if (isDrag && !dragContext.current) {
              const context = { childrenMap: new Map() };
              dragContext.current = context;
-             // ... (Group logic) ...
         }
         if (isDrag) {
              const draggedNodeIds = new Set(changes.filter(c => c.dragging).map(c => c.id));
@@ -404,7 +420,6 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
              });
         }
         let nextNodes = applyNodeChanges(changes, prev.nodes);
-        // ... (Group children movement logic) ...
         return { ...prev, nodes: nextNodes };
     }, !isDragEnd);
     if (isDragEnd) { dragContext.current = null; setSnapLines([]); }
