@@ -14,7 +14,10 @@ app = Flask(__name__)
 
 # --- Authentication Configuration ---
 app.config['SECRET_KEY'] = 'your-super-secret-and-complex-key'
-CORS(app)
+
+# --- CORS Fix ---
+# Explicitly allowing OPTIONS method and headers globally
+CORS(app, resources={r"/*": {"origins": "*"}}, methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"], allow_headers=["Content-Type", "Authorization"])
 
 # Ensure directories exist
 os.makedirs('static/maps', exist_ok=True)
@@ -22,7 +25,6 @@ os.makedirs('static/configs', exist_ok=True)
 os.makedirs('static/final_maps', exist_ok=True)
 
 # --- MOCK USER DATABASE ---
-# Roles: 'admin', 'user', 'viewer'
 USERS_DB = {
     "1": { "id": "1", "username": "admin", "password": "password", "privilege": "admin" },
     "2": { "id": "2", "username": "user",  "password": "password", "privilege": "user" },
@@ -30,9 +32,14 @@ USERS_DB = {
 }
 
 # --- DECORATORS ---
+
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
+        # FIX: Explicitly allow OPTIONS (Preflight) requests to pass without token check
+        if request.method == 'OPTIONS':
+            return jsonify({'status': 'ok'}), 200
+
         token = None
         if 'Authorization' in request.headers:
             try:
@@ -45,7 +52,6 @@ def token_required(f):
 
         try:
             data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
-            # Find user in DB
             request.current_user = next((u for u in USERS_DB.values() if u['username'] == data['user']), None)
         except Exception as e:
             return jsonify({'message': 'Token is invalid!', 'error': str(e)}), 401
@@ -54,25 +60,26 @@ def token_required(f):
     return decorated
 
 def admin_required(f):
-    """Decorator to ensure the user is an admin."""
     @wraps(f)
     def decorated(*args, **kwargs):
-        if not request.current_user or request.current_user['privilege'] != 'admin':
+        # Allow OPTIONS to pass admin check too
+        if request.method == 'OPTIONS':
+            return jsonify({'status': 'ok'}), 200
+
+        if not request.current_user or request.current_user.get('privilege') != 'admin':
             return jsonify({'message': 'Admin privileges required!'}), 403
         return f(*args, **kwargs)
     return decorated
 
 # --- AUTH ENDPOINTS ---
+
 @app.route('/login', methods=['POST'])
 def login():
     auth = request.json
     if not auth or not auth.get('username') or not auth.get('password'):
         return jsonify({'message': 'Missing credentials'}), 401
 
-    username = auth.get('username')
-    password = auth.get('password')
-
-    user_found = next((u for u in USERS_DB.values() if u['username'] == username and u['password'] == password), None)
+    user_found = next((u for u in USERS_DB.values() if u['username'] == auth.get('username') and u['password'] == auth.get('password')), None)
 
     if user_found:
         token = jwt.encode({
@@ -93,79 +100,82 @@ def login():
     return jsonify({'message': 'Invalid credentials'}), 401
 
 # --- ADMIN PANEL ENDPOINTS ---
-@app.route('/users', methods=['GET'])
+
+@app.route('/users', methods=['GET', 'OPTIONS'])
 @token_required
 @admin_required
 def get_all_users():
+    if request.method == 'OPTIONS': return jsonify({'status': 'ok'}), 200
     return jsonify([{'id': u['id'], 'username': u['username'], 'privilege': u['privilege']} for u in USERS_DB.values()])
 
-@app.route('/users/change-privileges/<user_id>/<new_privilege>', methods=['PUT'])
+@app.route('/users/change-privileges/<user_id>/<new_privilege>', methods=['PUT', 'OPTIONS'])
 @token_required
 @admin_required
 def change_privileges(user_id, new_privilege):
+    if request.method == 'OPTIONS': return jsonify({'status': 'ok'}), 200
+    
     if user_id not in USERS_DB:
         return jsonify({'message': 'User not found'}), 404
-    
     if new_privilege not in ['admin', 'user', 'viewer']:
         return jsonify({'message': 'Invalid privilege level'}), 400
 
     USERS_DB[user_id]['privilege'] = new_privilege
-    
     return jsonify({
         'message': 'Privilege updated',
         'user': {'id': user_id, 'username': USERS_DB[user_id]['username'], 'privilege': new_privilege}
     })
 
-# --- MAP UPLOAD ENDPOINT (WITH PERMISSION LOGIC) ---
-@app.route('/create-map', methods=['POST'])
+# --- MAP UPLOAD ENDPOINT ---
+
+@app.route('/create-map', methods=['POST', 'OPTIONS'])
 @token_required
 def create_map_endpoint():
-    current_privilege = request.current_user['privilege']
+    if request.method == 'OPTIONS': return jsonify({'status': 'ok'}), 200
 
-    # 1. VIEWER RESTRICTION: Cannot upload at all
+    # Safety check
+    if not request.current_user:
+        return jsonify({"error": "User authentication failed. User not found."}), 401
+
+    current_privilege = request.current_user.get('privilege', 'viewer')
+
+    # 1. Permission Check: Viewers
     if current_privilege == 'viewer':
-        return jsonify({"error": "Permission Denied: Viewers cannot upload maps to Cacti."}), 403
+        return jsonify({"error": "Permission Denied: Viewers cannot upload maps."}), 403
 
     if 'map_image' not in request.files:
         return jsonify({"error": "Map image is required"}), 400
     
+    # Form data extraction
     map_image_file = request.files['map_image']
     map_image_bytes = BytesIO(map_image_file.read())
-
     cacti_group_id = request.form.get('cacti_group_id')
     map_name = request.form.get('map_name')
     config_content = request.form.get('config_content')
 
     if not all([cacti_group_id, map_name, config_content]):
-        return jsonify({"error": "Missing required form data"}), 400
+        return jsonify({"error": "Missing form data"}), 400
 
     try:
         cacti_group_id = int(cacti_group_id)
     except ValueError:
-        return jsonify({"error": "Invalid cacti_group_id format"}), 400
+        return jsonify({"error": "Invalid ID"}), 400
 
-    # Retrieve installations for this group
     installations = services.get_installations_by_group_id(cacti_group_id)
     if not installations:
-        return jsonify({"error": f"Cacti group with ID {cacti_group_id} not found"}), 404
+        return jsonify({"error": "Group not found"}), 404
 
-    # 2. USER RESTRICTION: Cannot upload if server hostname ends in "1"
+    # 2. Permission Check: Users & Restricted Servers
     if current_privilege == 'user':
         for installation in installations:
             hostname = installation.get('hostname', '').strip()
-            # Check if hostname ends with "1" (e.g., "server1", "192.168.0.1")
             if hostname.endswith('1'):
-                 return jsonify({
-                     "error": f"Permission Denied: Standard Users cannot upload to restricted server '{hostname}'."
-                 }), 403
+                 return jsonify({"error": f"Permission Denied: Users cannot upload to restricted server '{hostname}'."}), 403
 
-    # ... (Proceed with existing upload logic) ...
+    # Process tasks
     created_tasks = []
     for installation in installations:
         task_id = str(uuid.uuid4())
-        services.MOCK_TASKS[task_id] = {
-            'id': task_id, 'status': 'PENDING', 'message': 'Queued', 'updated_at': datetime.utcnow().isoformat()
-        }
+        services.MOCK_TASKS[task_id] = {'id': task_id, 'status': 'PENDING', 'message': 'Queued', 'updated_at': datetime.utcnow().isoformat()}
         
         map_image_bytes.seek(0)
         thread_map_image = BytesIO(map_image_bytes.read())
@@ -175,15 +185,28 @@ def create_map_endpoint():
             args=(task_id, thread_map_image, config_content, map_name)
         )
         thread.start()
-
         created_tasks.append({ "hostname": installation['hostname'], "task_id": task_id })
 
-    return jsonify({
-        "message": f"Map creation started for {len(installations)} installations.",
-        "tasks": created_tasks
-    }), 202
+    return jsonify({"message": "Started", "tasks": created_tasks}), 202
 
-# --- OTHER ENDPOINTS (Groups, Devices, etc.) ---
+# --- OTHER ENDPOINTS ---
+
+@app.route('/config-template', methods=['GET', 'OPTIONS']) # <--- Fixed CORS error here
+@token_required
+def get_config_template_endpoint():
+    if request.method == 'OPTIONS': return jsonify({'status': 'ok'}), 200
+
+    template = """
+# AutoCacti Map Creator
+BACKGROUND images/backgrounds/%name%.png
+WIDTH %width%
+HEIGHT %height%
+TITLE %name%
+KEYTEXTCOLOR 0 0 0
+# ... rest of template ...
+    """.strip()
+    return Response(template, mimetype='text/plain')
+
 @app.route('/groups', methods=['GET'])
 @token_required
 def get_cacti_groups_endpoint():
@@ -201,6 +224,22 @@ def get_initial_device():
 def get_neighbors(ip):
     n = services.get_device_neighbors(ip)
     return jsonify(n) if n else (jsonify({"error": "No neighbors"}), 404)
+
+@app.route('/get-full-neighbors/<ip>', methods=['GET'])
+@token_required
+def get_full_neighbors(ip):
+    n = services.get_full_device_neighbors(ip)
+    return jsonify(n) if n else (jsonify({"error": "No neighbors"}), 404)
+
+@app.route('/task-status/<task_id>', methods=['GET'])
+@token_required
+def get_task_status_endpoint(task_id):
+    task = services.MOCK_TASKS.get(task_id)
+    if not task: return jsonify({"error": "Task not found"}), 404
+    if task['status'] == 'SUCCESS':
+        fname = task.get('final_map_filename')
+        if fname: task['message'] = url_for('static', filename=f'final_maps/{fname}', _external=True)
+    return jsonify(task)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
