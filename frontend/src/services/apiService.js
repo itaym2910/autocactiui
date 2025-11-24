@@ -109,6 +109,16 @@ export const login = (username, password) => {
     return apiClient.post('/login', { username, password });
 };
 
+// 1. Get all users
+export const getUsers = () => {
+  return apiClient.get('/users');
+};
+
+// 2. Change Privilege (PUT /users/change-privileges/{user_id}/{privilege})
+export const changeUserPrivilege = (userId, privilege) => {
+  return apiClient.put(`/users/change-privileges/${userId}/${privilege}`);
+};
+
 /**
  * Fetches detailed information for a single device by its IP address.
  * @param {string} ip - The IP address of the device.

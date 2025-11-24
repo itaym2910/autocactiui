@@ -13,29 +13,50 @@ from io import BytesIO
 app = Flask(__name__)
 
 # --- Authentication Configuration ---
-# In a real production environment, this secret key should be loaded from a secure,
-# non-version-controlled location (e.g., environment variables, a vault).
-app.config['SECRET_KEY'] = 'your-super-secret-and-complex-key-that-is-not-in-git'
+app.config['SECRET_KEY'] = 'your-super-secret-and-complex-key'
 # ---
 
 CORS(app)
 
-# Ensure the directories for storing maps, configs, and final outputs exist
+# Ensure directories exist
 os.makedirs('static/maps', exist_ok=True)
 os.makedirs('static/configs', exist_ok=True)
 os.makedirs('static/final_maps', exist_ok=True)
 
+# --- MOCK USER DATABASE ---
+# We use this to simulate a database. 
+# "admin" has high privileges. "user" has low privileges.
+USERS_DB = {
+    "1": {
+        "id": "1", 
+        "username": "admin", 
+        "password": "admin", # In real life, hash this!
+        "privilege": "admin" 
+    },
+    "2": {
+        "id": "2", 
+        "username": "user", 
+        "password": "user", 
+        "privilege": "user"
+    },
+    "3": {
+        "id": "3", 
+        "username": "viewer", 
+        "password": "view", 
+        "privilege": "readonly"
+    }
+}
 
-# --- Authentication Token Decorator ---
+# --- DECORATORS ---
+
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         token = None
         if 'Authorization' in request.headers:
-            # Expected format: "Bearer <token>"
             try:
-                auth_header = request.headers['Authorization']
-                token = auth_header.split(" ")[1]
+                # Expected format: "Bearer <token>"
+                token = request.headers['Authorization'].split(" ")[1]
             except IndexError:
                 return jsonify({'message': 'Malformed Authorization header'}), 401
 
@@ -43,8 +64,9 @@ def token_required(f):
             return jsonify({'message': 'Token is missing!'}), 401
 
         try:
-            # Decode the token using the secret key
-            jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
+            data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
+            # Attach the current user to the request context for use in endpoints
+            request.current_user = next((u for u in USERS_DB.values() if u['username'] == data['user']), None)
         except jwt.ExpiredSignatureError:
             return jsonify({'message': 'Token has expired!'}), 401
         except jwt.InvalidTokenError:
@@ -53,32 +75,102 @@ def token_required(f):
         return f(*args, **kwargs)
     return decorated
 
+def admin_required(f):
+    """Decorator to ensure the user is an admin."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        # This assumes token_required has already run and set request.current_user
+        if not request.current_user or request.current_user['privilege'] != 'admin':
+            return jsonify({'message': 'Admin privileges required!'}), 403
+        return f(*args, **kwargs)
+    return decorated
 
-# --- Public Authentication Endpoint ---
+
+# --- AUTHENTICATION ENDPOINTS ---
+
 @app.route('/login', methods=['POST'])
 def login():
-    """Authenticates a user and returns a JWT."""
+    """Authenticates a user and returns a JWT + User Info."""
     auth = request.json
     if not auth or not auth.get('username') or not auth.get('password'):
-        return jsonify({'message': 'Could not verify'}), 401, {'WWW-Authenticate': 'Basic realm="Login required!"'}
+        return jsonify({'message': 'Could not verify'}), 401
 
     username = auth.get('username')
     password = auth.get('password')
 
-    user = services.verify_user(username, password)
+    # Look for user in our Mock DB
+    user_found = None
+    for user in USERS_DB.values():
+        if user['username'] == username and user['password'] == password:
+            user_found = user
+            break
 
-    if user:
+    if user_found:
+        # Generate Token
         token = jwt.encode({
-            'user': username,
-            'exp': datetime.utcnow() + timedelta(hours=24) # Token expires in 24 hours
+            'user': user_found['username'],
+            'role': user_found['privilege'], # Add role to token
+            'exp': datetime.utcnow() + timedelta(hours=24)
         }, app.config['SECRET_KEY'], algorithm="HS256")
 
-        return jsonify({'token': token})
+        # Return Token AND User Object (excluding password)
+        # The frontend needs the 'user' object to determine if it should show the Admin button
+        return jsonify({
+            'token': token,
+            'user': {
+                'id': user_found['id'],
+                'username': user_found['username'],
+                'privilege': user_found['privilege']
+            }
+        })
 
     return jsonify({'message': 'Invalid credentials'}), 401
 
 
-# --- Protected API Endpoints ---
+# --- USER MANAGEMENT ENDPOINTS (ADMIN) ---
+
+@app.route('/users', methods=['GET'])
+@token_required
+@admin_required # Only admins can list users
+def get_all_users():
+    """Returns a list of all users."""
+    users_list = []
+    for u in USERS_DB.values():
+        users_list.append({
+            'id': u['id'],
+            'username': u['username'],
+            'privilege': u['privilege']
+        })
+    return jsonify(users_list)
+
+@app.route('/users/change-privileges/<user_id>/<new_privilege>', methods=['PUT'])
+@token_required
+@admin_required # Only admins can change privileges
+def change_privileges(user_id, new_privilege):
+    """Updates a user's privilege level."""
+    
+    if user_id not in USERS_DB:
+        return jsonify({'message': 'User not found'}), 404
+    
+    # Validation (optional)
+    if new_privilege not in ['admin', 'user', 'readonly', 'editor']:
+        return jsonify({'message': 'Invalid privilege level'}), 400
+
+    # Update the user in our mock DB
+    USERS_DB[user_id]['privilege'] = new_privilege
+    
+    return jsonify({
+        'message': 'Privilege updated successfully',
+        'user': {
+            'id': user_id,
+            'username': USERS_DB[user_id]['username'],
+            'privilege': new_privilege
+        }
+    })
+
+
+# --- DEVICE & MAP ENDPOINTS ---
+
 @app.route('/get-device-info/<ip_address>', methods=['GET'])
 @token_required
 def get_device_info_endpoint(ip_address):
@@ -97,7 +189,6 @@ def get_device_neighbors_endpoint(ip_address):
         return jsonify(neighbors)
     return jsonify({"error": "Device not found or has no neighbors"}), 404
 
-# --- NEW ENDPOINT FOR FULL SCAN ---
 @app.route('/get-full-neighbors/<ip_address>', methods=['GET'])
 @token_required
 def get_full_device_neighbors_endpoint(ip_address):
@@ -106,20 +197,17 @@ def get_full_device_neighbors_endpoint(ip_address):
     if neighbors:
         return jsonify(neighbors)
     return jsonify({"error": "Device not found or has no neighbors"}), 404
-# ----------------------------------
-    
+
 @app.route('/config-template', methods=['GET'])
 @token_required
 def get_config_template_endpoint():
     """Returns the Cacti Weathermap configuration template."""
     template = """
 # Automatically generated by AutoCacti Map Creator
-
 BACKGROUND images/backgrounds/%name%.png
 WIDTH %width%
 HEIGHT %height%
 TITLE %name%
-
 KEYTEXTCOLOR 0 0 0
 KEYOUTLINECOLOR 0 0 0
 KEYBGCOLOR 255 255 255
@@ -134,42 +222,25 @@ SCALE DEFAULT 40 55  0 240 0
 SCALE DEFAULT 55 70  240 240 0
 SCALE DEFAULT 70 85  255 192 0
 SCALE DEFAULT 85 100 255 0 0
-
 SET key_hidezero_DEFAULT 1
-
-# End of global section
-
-# TEMPLATE-only NODEs:
-# TEMPLATE-only LINKs:
 LINK DEFAULT
     WIDTH 3
     BWLABEL bits
     BANDWIDTH 10000M
-
-# regular NODEs:
 %nodes%
-
-# regular LINKs:
 %links%
-
-# That's All Folks!
 """.strip()
     return Response(template, mimetype='text/plain')
 
 @app.route('/groups', methods=['GET'])
 @token_required
 def get_cacti_groups_endpoint():
-    """Retrieves all registered Cacti installation groups."""
     groups = services.get_cacti_groups()
     return jsonify(groups)
 
 @app.route('/create-map', methods=['POST'])
 @token_required
 def create_map_endpoint():
-    """
-    Accepts map data for a group of Cacti installations, starts multiple background
-    processes for rendering, and returns a list of task IDs.
-    """
     if 'map_image' not in request.files:
         return jsonify({"error": "Map image is required"}), 400
     
@@ -181,7 +252,7 @@ def create_map_endpoint():
     config_content = request.form.get('config_content')
 
     if not all([cacti_group_id, map_name, config_content]):
-        return jsonify({"error": "Missing required form data: cacti_group_id, map_name, or config_content"}), 400
+        return jsonify({"error": "Missing required form data"}), 400
 
     try:
         cacti_group_id = int(cacti_group_id)
@@ -204,7 +275,6 @@ def create_map_endpoint():
             'updated_at': datetime.utcnow().isoformat()
         }
         
-        # We need to create a new BytesIO object for each thread
         map_image_bytes.seek(0)
         thread_map_image = BytesIO(map_image_bytes.read())
 
@@ -227,12 +297,10 @@ def create_map_endpoint():
 @app.route('/task-status/<task_id>', methods=['GET'])
 @token_required
 def get_task_status_endpoint(task_id):
-    """Polls for the status of a background task."""
     task = services.MOCK_TASKS.get(task_id)
     if not task:
         return jsonify({"error": "Task not found"}), 404
     
-    # If the task is successful, generate the final map URL dynamically
     if task['status'] == 'SUCCESS':
         final_map_filename = task.get('final_map_filename')
         if final_map_filename:
@@ -243,7 +311,6 @@ def get_task_status_endpoint(task_id):
 @app.route('/api/devices', methods=['POST'])
 @token_required
 def get_initial_device():
-    """Endpoint to get the very first device to start the map."""
     data = request.get_json()
     ip = data.get('ip')
     if not ip:

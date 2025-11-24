@@ -35,6 +35,8 @@ const Sidebar = ({
   onAddNeighbor,
   onDownloadConfig,
   onDownloadPng,
+  currentUser, // <--- New Prop
+  onOpenAdmin, // <--- New Prop
 }) => {
   const { t } = useTranslation();
   const { onUpdateNodeData } = useContext(NodeContext);
@@ -105,7 +107,7 @@ const Sidebar = ({
 
   return (
     <div className="sidebar">
-      {/* --- POPUP OVERLAY --- */}
+      {/* --- POPUP OVERLAY FOR DOWNLOAD --- */}
       {showDownloadPopup && (
         <div className="download-popup-overlay">
           <div className="download-popup">
@@ -183,7 +185,7 @@ const Sidebar = ({
           <div className="control-group">
             <label>{t('sidebar.mapActions')}</label>
             
-            {/* Main Download Button Trigger */}
+            {/* Download Button Trigger */}
             <button 
                 onClick={() => setShowDownloadPopup(true)} 
                 className="secondary" 
@@ -202,6 +204,17 @@ const Sidebar = ({
       
       <h3>{t('sidebar.session')}</h3>
       <div className="control-group">
+        {/* Admin Button - Only visible if user has 'admin' privilege */}
+        {currentUser && currentUser.privilege === 'admin' && (
+          <button 
+            onClick={onOpenAdmin} 
+            className="secondary"
+            style={{ marginBottom: '10px', border: '1px solid var(--accent-primary)' }}
+          >
+            🛡️ {t('sidebar.adminPanel') || "User Management"}
+          </button>
+        )}
+
         <button onClick={onLogout} className="secondary">{t('sidebar.logout')}</button>
       </div>
 

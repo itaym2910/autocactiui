@@ -19,6 +19,7 @@ import TopToolbar from './components/TopToolbar/TopToolbar';
 import ContextMenu from './components/ContextMenu/ContextMenu';
 import UploadSuccessPopup from './components/common/UploadSuccessPopup';
 import NeighborsPopup from './components/common/NeighborsPopup';
+import AdminPanel from './components/Admin/AdminPanel'; // <--- Admin Import
 
 import * as api from './services/apiService';
 import { handleUploadProcess } from './services/mapExportService';
@@ -38,10 +39,16 @@ function App() {
   const [isAuthLoading, setIsAuthLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [mapName, setMapName] = useState('My-Network-Map');
+  
+  // Auth & User State
   const [token, setToken] = useState(() => localStorage.getItem('token'));
+  const [currentUser, setCurrentUser] = useState(null); // <--- Store User Info
+  
+  // UI State
   const [contextMenu, setContextMenu] = useState(null);
   const [uploadSuccessData, setUploadSuccessData] = useState(null);
   const [neighborPopup, setNeighborPopup] = useState({ isOpen: false, neighbors: [], sourceNode: null });
+  const [showAdminPanel, setShowAdminPanel] = useState(false); // <--- Admin Panel State
   const [mapInteractionLoading, setMapInteractionLoading] = useState(false);
   
   const { t } = useTranslation();
@@ -125,7 +132,7 @@ function App() {
       });
   }, [selectedCustomNode, currentNeighbors, nodes, edges]);
 
-
+  // --- Helper Callbacks ---
   const setIsLoading = useCallback((value) => {
       setMapInteractionLoading(value);
       setMapHookLoading(value);
@@ -138,6 +145,14 @@ function App() {
   }, [setMapHookError]);
 
   // --- Effects ---
+  // Restore user info on reload
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user_info');
+    if (storedUser) {
+      setCurrentUser(JSON.parse(storedUser));
+    }
+  }, []);
+
   useEffect(() => {
     if (!contextMenu) return;
     const isNodeStillSelected = selectedElements.some(el => el.id === contextMenu.node.id);
@@ -165,14 +180,22 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [undo, redo]);
 
-  // --- Auth & Startup ---
+  // --- Auth Handlers ---
   const handleLogin = async (username, password) => {
     setIsAuthLoading(true);
     setAppError('');
     try {
       const response = await api.login(username, password);
-      localStorage.setItem('token', response.data.token);
-      setToken(response.data.token);
+      // Expected response structure: { token: '...', user: { id: 1, privilege: 'admin', ... } }
+      const { token, user } = response.data;
+
+      localStorage.setItem('token', token);
+      setToken(token);
+
+      if (user) {
+        setCurrentUser(user);
+        localStorage.setItem('user_info', JSON.stringify(user));
+      }
     } catch (err) {
       setAppError(t('app.errorLogin'));
     } finally {
@@ -182,10 +205,14 @@ function App() {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user_info');
     setToken(null);
+    setCurrentUser(null);
+    setShowAdminPanel(false);
     resetMap();
   };
 
+  // --- Map Handlers ---
   const handleStart = async (ip, initialIconName) => {
     if (!ip) { setAppError(t('app.errorStartIp')); return; }
     setIsLoading(true);
@@ -250,12 +277,11 @@ function App() {
     }
   };
 
-  // --- UPDATED: JSON Download with "Save As" support ---
+  // --- Export (JSON) with Save As ---
   const handleDownloadConfig = useCallback(async () => {
     const dataStr = JSON.stringify({ nodes, edges, mapName }, null, 2);
     const fileName = `${mapName || 'network-map'}.json`;
 
-    // 1. Try File System Access API (Chrome/Edge/Opera)
     if ('showSaveFilePicker' in window) {
       try {
         const handle = await window.showSaveFilePicker({
@@ -270,17 +296,14 @@ function App() {
         await writable.close();
         return;
       } catch (err) {
-        // User cancelled picker, do nothing
         if (err.name === 'AbortError') return;
-        console.warn('File System Access API failed, falling back to download.', err);
       }
     }
-
-    // 2. Fallback for Firefox/Safari
+    // Fallback
     mapImportExport.downloadMapConfig(nodes, edges, mapName);
   }, [nodes, edges, mapName]);
 
-  // --- UPDATED: PNG Download with "Save As" support ---
+  // --- Export (PNG) with Save As ---
   const handleDownloadPng = useCallback(async () => {
     const mapElement = document.querySelector('.react-flow');
     if (!mapElement) {
@@ -301,11 +324,9 @@ function App() {
     };
 
     try {
-        // Generate Blob instead of Data URL for better file handling
         const blob = await htmlToImage.toBlob(mapElement, options);
         if (!blob) throw new Error('Failed to create image blob');
 
-        // 1. Try File System Access API (Chrome/Edge/Opera)
         if ('showSaveFilePicker' in window) {
             try {
                 const handle = await window.showSaveFilePicker({
@@ -319,12 +340,10 @@ function App() {
                 await writable.write(blob);
                 await writable.close();
             } catch (fsErr) {
-                 // User cancelled, ignore. If real error, fall through to fallback.
                  if (fsErr.name !== 'AbortError') throw fsErr;
             }
         } 
         else {
-            // 2. Fallback for Firefox/Safari
             const link = document.createElement('a');
             link.download = fileName;
             link.href = URL.createObjectURL(blob);
@@ -341,7 +360,6 @@ function App() {
     }
   }, [mapName, theme, setIsLoading, setAppError, t]);
 
-
   const handleImportConfig = useCallback(async (file) => {
     setIsLoading(true);
     setAppError('');
@@ -356,7 +374,7 @@ function App() {
     }
   }, [setMapState, t]);
 
-  // --- Render ---
+  // --- Click Handlers ---
   const onNodeClickHandler = useCallback((event, node) => {
       setContextMenu(null);
       onNodeClick(event, node, setIsLoading, setAppError); 
@@ -412,13 +430,20 @@ function App() {
           sendToBack={sendToBack}
           onDownloadConfig={handleDownloadConfig}
           onDownloadPng={handleDownloadPng}
+          
+          // Neighbors
           neighbors={availableNeighbors}
           onAddNeighbor={(neighbor) => {
             if (selectedCustomNode) {
               confirmNeighbor(neighbor, selectedCustomNode.id, setIsLoading, setAppError);
             }
           }}
+
+          // Admin Props
+          currentUser={currentUser}
+          onOpenAdmin={() => setShowAdminPanel(true)}
         />
+
         <div className="main-content" ref={reactFlowWrapper}>
           <TopToolbar
             selectedElements={selectedElements}
@@ -457,6 +482,8 @@ function App() {
                 />
               </ReactFlowProvider>
             )}
+            
+            {/* Popups and Overlays */}
             {contextMenu && (
               <ContextMenu
                 node={contextMenu.node}
@@ -470,12 +497,15 @@ function App() {
                 sendBackward={sendBackward}
               />
             )}
+            
             {error && <p className="error-message">{error}</p>}
+            
             {(isAuthLoading || isUploading || mapInteractionLoading) && (
               <p className="loading-message">
                 {isUploading ? t('app.processingMap') : t('app.loading')}
               </p>
             )}
+            
             <UploadSuccessPopup 
               key={uploadSuccessData ? JSON.stringify(uploadSuccessData.tasks) : 'popup-closed'}
               data={uploadSuccessData} 
@@ -492,6 +522,14 @@ function App() {
               isLoading={mapInteractionLoading}
               onFullScan={() => handleFullScan(setIsLoading, setAppError)}
             />
+
+            {/* Admin Panel Popup */}
+            <AdminPanel 
+              isOpen={showAdminPanel} 
+              onClose={() => setShowAdminPanel(false)}
+              currentUser={currentUser}
+            />
+
           </div>
         </div>
       </div>
