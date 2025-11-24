@@ -20,7 +20,8 @@
     "statusProcessing": "Processing...",
     "statusFailed": "Failed",
     "errorTaskStatus": "Could not retrieve task status.",
-    "errorImportMap": "Import failed. The file is not a valid map configuration."
+    "errorImportMap": "Import failed. The file is not a valid map configuration.",
+    "errorDownloadPng": "Failed to generate image. Please check the console for details."
   },
   "sidebar": {
     "controls": "Controls",
@@ -94,8 +95,12 @@
     "quickSelect": "Quick Select",
     "selectByType": "Select by type...",
     "endDeviceIdentifier": "End Device (No IP)",
-    "downloadMap": "Download Map",
-    "importMap": "Import Map"
+    "importMap": "Import Map",
+    "download": "Download",
+    "downloadMap": "Save as JSON Config",
+    "downloadPng": "Save as Image",
+    "selectDownloadFormat": "Select Download Format",
+    "selectDownloadDesc": "Choose how you would like to save your map:"
   },
   "startup": {
     "title": "Interactive Network Map Creator",
@@ -129,5 +134,8 @@
     "fullScanTooltip": "Perform a deep scan to find all neighbors via SNMP",
     "regularDevices": "Regular Devices",
     "fullScanDevices": "Full Scan Devices"
+  },
+  "common": {
+    "cancel": "Cancel"
   }
 }

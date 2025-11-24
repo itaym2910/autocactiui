@@ -20,7 +20,8 @@
     "statusProcessing": "מעבד...",
     "statusFailed": "נכשל",
     "errorTaskStatus": "לא ניתן היה לקבל סטטוס משימה.",
-    "errorImportMap": "הייבוא נכשל. הקובץ אינו קובץ תצורת מפה תקין."
+    "errorImportMap": "הייבוא נכשל. הקובץ אינו קובץ תצורת מפה תקין.",
+    "errorDownloadPng": "יצירת התמונה נכשלה. אנא בדוק את הקונסול לפרטים."
   },
   "sidebar": {
     "controls": "הגדרות",
@@ -94,8 +95,12 @@
     "quickSelect": "בחירה מהירה",
     "selectByType": "בחר לפי סוג...",
     "endDeviceIdentifier": "התקן קצה (ללא IP)",
-    "downloadMap": "הורד מפה",
-    "importMap": "ייבא מפה"
+    "importMap": "ייבא מפה",
+    "download": "הורדה",
+    "downloadMap": "שמור כקובץ JSON",
+    "downloadPng": "שמור כתמונה (PNG)",
+    "selectDownloadFormat": "בחר פורמט הורדה",
+    "selectDownloadDesc": "בחר את האופן בו תרצה לייצא את המפה:"
   },
   "startup": {
     "title": "יוצר מפות רשת אינטראקטיבי",
@@ -129,5 +134,8 @@
     "fullScanTooltip": "סורק שכנים דרך Snmp",
     "regularDevices": "התקנים רגילים",
     "fullScanDevices": "התקנים מסריקה מלאה"
+  },
+  "common": {
+    "cancel": "ביטול"
   }
 }

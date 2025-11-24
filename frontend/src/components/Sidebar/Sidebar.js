@@ -1,5 +1,4 @@
-// frontend/src/components/Sidebar/Sidebar.js
-import React, { useContext, useRef } from 'react';
+import React, { useContext, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NodeContext } from '../../App';
 import MapExportControls from './MapExportControls';
@@ -35,9 +34,13 @@ const Sidebar = ({
   neighbors,
   onAddNeighbor,
   onDownloadConfig,
+  onDownloadPng,
 }) => {
   const { t } = useTranslation();
   const { onUpdateNodeData } = useContext(NodeContext);
+
+  // --- State for Download Popup ---
+  const [showDownloadPopup, setShowDownloadPopup] = useState(false);
 
   const handleResetClick = () => {
     if (window.confirm(t('sidebar.confirmReset'))) {
@@ -102,6 +105,41 @@ const Sidebar = ({
 
   return (
     <div className="sidebar">
+      {/* --- POPUP OVERLAY --- */}
+      {showDownloadPopup && (
+        <div className="download-popup-overlay">
+          <div className="download-popup">
+            <h3>{t('sidebar.selectDownloadFormat') || "Select Format"}</h3>
+            <p>{t('sidebar.selectDownloadDesc') || "Choose how you want to save your map:"}</p>
+            
+            <div className="download-options-grid">
+              <button 
+                onClick={() => { onDownloadConfig(); setShowDownloadPopup(false); }}
+                className="download-option-btn"
+              >
+                <span style={{fontSize: '24px'}}>📄</span>
+                <span>{t('sidebar.downloadMap') || "JSON Config"}</span>
+              </button>
+              
+              <button 
+                onClick={() => { onDownloadPng(); setShowDownloadPopup(false); }}
+                className="download-option-btn"
+              >
+                <span style={{fontSize: '24px'}}>🖼️</span>
+                <span>{t('sidebar.downloadPng') || "PNG Image"}</span>
+              </button>
+            </div>
+
+            <button 
+              className="secondary cancel-btn" 
+              onClick={() => setShowDownloadPopup(false)}
+            >
+              {t('common.cancel') || "Cancel"}
+            </button>
+          </div>
+        </div>
+      )}
+
       <MapExportControls
         mapName={mapName}
         setMapName={setMapName}
@@ -141,11 +179,20 @@ const Sidebar = ({
                 ))}
               </select>
            </div>
+          
           <div className="control-group">
             <label>{t('sidebar.mapActions')}</label>
-            <button onClick={onDownloadConfig} className="secondary" disabled={!isMapStarted} style={{marginBottom: '10px'}}>
-                {t('sidebar.downloadMap')}
+            
+            {/* Main Download Button Trigger */}
+            <button 
+                onClick={() => setShowDownloadPopup(true)} 
+                className="secondary" 
+                disabled={!isMapStarted} 
+                style={{marginBottom: '10px'}}
+            >
+                {t('sidebar.download') || "Download..."} 
             </button>
+
             <button onClick={handleResetClick} className="danger" disabled={!isMapStarted}>
               {t('sidebar.clearMap')}
             </button>
