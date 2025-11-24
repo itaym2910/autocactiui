@@ -9,7 +9,6 @@ const AdminPanel = ({ isOpen, onClose, currentUser }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Fetch users when popup opens
   useEffect(() => {
     if (isOpen) {
       fetchUsers();
@@ -21,28 +20,23 @@ const AdminPanel = ({ isOpen, onClose, currentUser }) => {
     setError('');
     try {
       const response = await api.getUsers();
-      // Adjust this based on whether your API returns [users] or { data: [users] }
-      setUsers(response.data || response); 
+      setUsers(response.data); 
     } catch (err) {
-      console.error(err);
-      setError(t('admin.errorFetch'));
+      setError(t('admin.errorFetch') || "Failed to fetch users");
     } finally {
       setLoading(false);
     }
   };
 
   const handlePrivilegeChange = async (userId, newPrivilege) => {
-    // 1. Optimistic Update (update UI immediately)
     const previousUsers = [...users];
     setUsers(users.map(u => u.id === userId ? { ...u, privilege: newPrivilege } : u));
 
     try {
-      // 2. Call API: PUT /users/change-privileges/{id}/{privilege}
       await api.changeUserPrivilege(userId, newPrivilege);
     } catch (err) {
-      console.error(err);
-      setError(t('admin.errorUpdate'));
-      setUsers(previousUsers); // Revert on error
+      setError(t('admin.errorUpdate') || "Update failed");
+      setUsers(previousUsers); 
     }
   };
 
@@ -52,7 +46,7 @@ const AdminPanel = ({ isOpen, onClose, currentUser }) => {
     <div className="admin-overlay">
       <div className="admin-modal">
         <div className="admin-header">
-          <h2>{t('admin.title')}</h2>
+          <h2>{t('admin.title') || "User Management"}</h2>
           <button className="close-btn" onClick={onClose}>×</button>
         </div>
 
@@ -60,7 +54,7 @@ const AdminPanel = ({ isOpen, onClose, currentUser }) => {
 
         <div className="admin-content">
           {loading ? (
-            <p className="loading-text">{t('app.loading')}</p>
+            <p>{t('app.loading')}</p>
           ) : (
             <table className="user-table">
               <thead>
@@ -73,24 +67,21 @@ const AdminPanel = ({ isOpen, onClose, currentUser }) => {
                 {users.map(user => (
                   <tr key={user.id}>
                     <td>
-                      <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-                        <span style={{fontSize: '1.2em'}}>👤</span>
-                        {user.username}
-                        {currentUser && user.id === currentUser.id && (
-                          <span className="me-badge">{t('admin.me')}</span>
-                        )}
-                      </div>
+                      {user.username}
+                      {currentUser && user.id === currentUser.id && (
+                        <span className="me-badge">{t('admin.me')}</span>
+                      )}
                     </td>
                     <td>
                       <select 
-                        value={user.privilege} // Assumes your DB column is named 'privilege'
+                        value={user.privilege}
                         onChange={(e) => handlePrivilegeChange(user.id, e.target.value)}
-                        disabled={currentUser && user.id === currentUser.id} // Prevent locking yourself out
+                        disabled={currentUser && user.id === currentUser.id} 
                         className="privilege-select"
                       >
-                        <option value="user">User</option>
-                        <option value="admin">Admin</option>
-                        <option value="editor">Editor</option> {/* Add other roles if you have them */}
+                        <option value="user">User (Restricted Upload)</option>
+                        <option value="admin">Admin (Full Access)</option>
+                        <option value="viewer">Viewer (No Upload)</option>
                       </select>
                     </td>
                   </tr>
@@ -98,10 +89,6 @@ const AdminPanel = ({ isOpen, onClose, currentUser }) => {
               </tbody>
             </table>
           )}
-        </div>
-        
-        <div className="admin-footer">
-            <button className="secondary" onClick={onClose}>{t('common.close') || "Close"}</button>
         </div>
       </div>
     </div>
