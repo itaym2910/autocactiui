@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { ReactFlowProvider } from 'react-flow-renderer';
 import { useTranslation } from 'react-i18next';
-import * as htmlToImage from 'html-to-image'; // <--- NEW IMPORT
+import * as htmlToImage from 'html-to-image';
 
 import { useThemeManager } from './hooks/useThemeManager';
 import { useLocalizationManager } from './hooks/useLocalizationManager';
@@ -57,7 +57,7 @@ function App() {
     setNeighborPopup(prev => ({ ...prev, isOpen: false }));
   }, []);
 
-  // --- Custom Hooks for State and Logic Management ---
+  // --- Custom Hooks ---
   const { theme, toggleTheme } = useThemeManager();
   useLocalizationManager();
   const { cactiGroups, selectedCactiGroupId, setSelectedCactiGroupId } = useCacti(setError, token);
@@ -94,7 +94,7 @@ function App() {
     setState: setMapState,
   } = useMapInteraction(theme, handleShowNeighborPopup);
 
-  // --- Memos and Derived State ---
+  // --- Memos ---
   const nodeTypes = useMemo(() => ({ custom: CustomNode, group: GroupNode, text: TextNode }), []);
   const availableIcons = useMemo(() => Object.keys(ICONS_BY_THEME).filter(k => k !== 'Unknown'), []);
 
@@ -105,7 +105,6 @@ function App() {
 
   const availableNeighbors = useMemo(() => {
       if (!selectedCustomNode) return [];
-
       const existingConnections = new Set(
           edges
               .filter(e => e.source === selectedCustomNode.id || e.target === selectedCustomNode.id)
@@ -117,7 +116,6 @@ function App() {
                   return e.target;
               })
       );
-
       return currentNeighbors.filter(n => {
           if (n.ip) {
               return !nodes.some(node => node.id === n.ip);
@@ -136,18 +134,14 @@ function App() {
   const setAppError = useCallback((message) => {
       setError(message);
       setMapHookError(message);
-      if (message) {
-          setTimeout(() => setError(''), 5000);
-      }
+      if (message) setTimeout(() => setError(''), 5000);
   }, [setMapHookError]);
 
   // --- Effects ---
   useEffect(() => {
     if (!contextMenu) return;
     const isNodeStillSelected = selectedElements.some(el => el.id === contextMenu.node.id);
-    if (!isNodeStillSelected) {
-      setContextMenu(null);
-    }
+    if (!isNodeStillSelected) setContextMenu(null);
   }, [selectedElements, contextMenu]);
 
   useEffect(() => {
@@ -157,21 +151,14 @@ function App() {
       selectedElements[0].type === 'custom' && 
       neighborPopup.sourceNode?.id === selectedElements[0].id;
 
-    if (!shouldPopupBeOpen) {
-      handleCloseNeighborPopup();
-    }
+    if (!shouldPopupBeOpen) handleCloseNeighborPopup();
   }, [selectedElements, neighborPopup.isOpen, neighborPopup.sourceNode, handleCloseNeighborPopup]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.ctrlKey || event.metaKey) {
-        if (event.key === 'z') {
-          event.preventDefault();
-          undo();
-        } else if (event.key === 'y') {
-          event.preventDefault();
-          redo();
-        }
+        if (event.key === 'z') { event.preventDefault(); undo(); } 
+        else if (event.key === 'y') { event.preventDefault(); redo(); }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -184,9 +171,8 @@ function App() {
     setAppError('');
     try {
       const response = await api.login(username, password);
-      const newToken = response.data.token;
-      localStorage.setItem('token', newToken);
-      setToken(newToken);
+      localStorage.setItem('token', response.data.token);
+      setToken(response.data.token);
     } catch (err) {
       setAppError(t('app.errorLogin'));
     } finally {
@@ -216,7 +202,6 @@ function App() {
     }
   };
 
-  // --- Neighbor Handlers ---
   const handleAddNeighborFromPopup = useCallback(async (neighborGroup) => {
     const { sourceNode } = neighborPopup;
     if (!sourceNode) return;
@@ -226,31 +211,25 @@ function App() {
   const handleAddSelectedNeighbors = useCallback(async (selectedNeighborGroups) => {
     const { sourceNode } = neighborPopup;
     if (!sourceNode || selectedNeighborGroups.length === 0) return;
-  
     handleCloseNeighborPopup();
     setIsLoading(true);
-  
     try {
       for (const neighborGroup of selectedNeighborGroups) {
         await confirmNeighbor(neighborGroup, sourceNode.id, setIsLoading, setAppError, true);
       }
     } catch (err) {
-      console.error("An error occurred during batch neighbor addition:", err);
       setAppError(t('app.errorAddNeighborGeneric'));
     } finally {
       setIsLoading(false);
     }
   }, [neighborPopup, confirmNeighbor, setIsLoading, setAppError, handleCloseNeighborPopup, t]);
 
-
-  // --- Export/Import Handlers ---
   const handleCreateMap = async () => {
     if (!reactFlowWrapper.current || nodes.length === 0) { setAppError(t('app.errorEmptyMap')); return; }
     if (!selectedCactiGroupId) { setAppError(t('app.errorSelectCacti')); return; }
     
     setIsUploading(true);
     setAppError('');
-    
     try {
       const taskResponse = await handleUploadProcess({
         mapElement: reactFlowWrapper.current,
@@ -266,52 +245,100 @@ function App() {
       setMapName('My-Network-Map');
     } catch (err) {
       setAppError(t('app.errorUpload'));
-      console.error(err);
     } finally {
       setIsUploading(false);
     }
   };
 
-  const handleDownloadConfig = useCallback(() => {
+  // --- UPDATED: JSON Download with "Save As" support ---
+  const handleDownloadConfig = useCallback(async () => {
+    const dataStr = JSON.stringify({ nodes, edges, mapName }, null, 2);
+    const fileName = `${mapName || 'network-map'}.json`;
+
+    // 1. Try File System Access API (Chrome/Edge/Opera)
+    if ('showSaveFilePicker' in window) {
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: fileName,
+          types: [{
+            description: 'JSON Configuration File',
+            accept: { 'application/json': ['.json'] },
+          }],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(dataStr);
+        await writable.close();
+        return;
+      } catch (err) {
+        // User cancelled picker, do nothing
+        if (err.name === 'AbortError') return;
+        console.warn('File System Access API failed, falling back to download.', err);
+      }
+    }
+
+    // 2. Fallback for Firefox/Safari
     mapImportExport.downloadMapConfig(nodes, edges, mapName);
   }, [nodes, edges, mapName]);
 
-  // --- NEW: PNG Download Handler ---
-  const handleDownloadPng = useCallback(() => {
-    // Select the .react-flow element to capture the canvas
+  // --- UPDATED: PNG Download with "Save As" support ---
+  const handleDownloadPng = useCallback(async () => {
     const mapElement = document.querySelector('.react-flow');
-
     if (!mapElement) {
       setAppError('Map element not found');
       return;
     }
 
     setIsLoading(true);
-
-    // Set background color based on theme to avoid transparent backgrounds
+    const fileName = `${mapName || 'network-map'}.png`;
     const backgroundColor = theme === 'dark' ? '#1f1f1f' : '#ffffff';
-
-    htmlToImage.toPng(mapElement, {
+    const options = {
       backgroundColor: backgroundColor,
-      pixelRatio: 2, // Better quality
-      // Filter out UI controls like minimap or panels if needed
+      pixelRatio: 2,
       filter: (node) => {
         const exclude = ['react-flow__controls', 'react-flow__minimap'];
         return !exclude.some(cls => node.classList && node.classList.contains(cls));
       }
-    })
-    .then((dataUrl) => {
-      const link = document.createElement('a');
-      link.download = `${mapName || 'network-map'}.png`;
-      link.href = dataUrl;
-      link.click();
-      setIsLoading(false);
-    })
-    .catch((err) => {
+    };
+
+    try {
+        // Generate Blob instead of Data URL for better file handling
+        const blob = await htmlToImage.toBlob(mapElement, options);
+        if (!blob) throw new Error('Failed to create image blob');
+
+        // 1. Try File System Access API (Chrome/Edge/Opera)
+        if ('showSaveFilePicker' in window) {
+            try {
+                const handle = await window.showSaveFilePicker({
+                    suggestedName: fileName,
+                    types: [{
+                        description: 'PNG Image',
+                        accept: { 'image/png': ['.png'] },
+                    }],
+                });
+                const writable = await handle.createWritable();
+                await writable.write(blob);
+                await writable.close();
+            } catch (fsErr) {
+                 // User cancelled, ignore. If real error, fall through to fallback.
+                 if (fsErr.name !== 'AbortError') throw fsErr;
+            }
+        } 
+        else {
+            // 2. Fallback for Firefox/Safari
+            const link = document.createElement('a');
+            link.download = fileName;
+            link.href = URL.createObjectURL(blob);
+            link.click();
+            URL.revokeObjectURL(link.href);
+        }
+    } catch (err) {
       console.error('Failed to download PNG', err);
-      setAppError(t('app.errorDownloadPng') || 'Failed to generate image');
+      if (err.name !== 'AbortError') {
+         setAppError(t('app.errorDownloadPng') || 'Failed to generate image');
+      }
+    } finally {
       setIsLoading(false);
-    });
+    }
   }, [mapName, theme, setIsLoading, setAppError, t]);
 
 
@@ -319,18 +346,17 @@ function App() {
     setIsLoading(true);
     setAppError('');
     try {
-      const { nodes: importedNodes, edges: importedEdges, mapName: importedMapName } = await mapImportExport.importMapConfig(file);
-      setMapState({ nodes: importedNodes, edges: importedEdges });
-      setMapName(importedMapName);
+      const { nodes: impNodes, edges: impEdges, mapName: impName } = await mapImportExport.importMapConfig(file);
+      setMapState({ nodes: impNodes, edges: impEdges });
+      setMapName(impName);
     } catch (err) {
       setAppError(t('app.errorImportMap'));
-      console.error(err);
     } finally {
       setIsLoading(false);
     }
   }, [setMapState, t]);
 
-  // --- Event Handlers ---
+  // --- Render ---
   const onNodeClickHandler = useCallback((event, node) => {
       setContextMenu(null);
       onNodeClick(event, node, setIsLoading, setAppError); 
@@ -385,7 +411,7 @@ function App() {
           bringToFront={bringToFront}
           sendToBack={sendToBack}
           onDownloadConfig={handleDownloadConfig}
-          onDownloadPng={handleDownloadPng} // <--- Pass the new handler
+          onDownloadPng={handleDownloadPng}
           neighbors={availableNeighbors}
           onAddNeighbor={(neighbor) => {
             if (selectedCustomNode) {
