@@ -96,11 +96,22 @@
     "selectByType": "Select by type...",
     "endDeviceIdentifier": "End Device (No IP)",
     "importMap": "Import Map",
+    
     "download": "Download",
     "downloadMap": "Save as JSON Config",
-    "downloadPng": "Save as Image",
+    "downloadPng": "Save as Image (PNG)",
     "selectDownloadFormat": "Select Download Format",
-    "selectDownloadDesc": "Choose how you would like to save your map:"
+    "selectDownloadDesc": "Choose how you would like to save your map:",
+    "viewerMode": "Viewer Mode: Upload disabled",
+    "adminPanel": "Admin Panel"
+  },
+  "admin": {
+    "title": "User Privileges",
+    "username": "Username",
+    "privilege": "Privilege Level",
+    "me": "Me",
+    "errorFetch": "Failed to load users list.",
+    "errorUpdate": "Failed to update user privilege."
   },
   "startup": {
     "title": "Interactive Network Map Creator",
@@ -136,6 +147,7 @@
     "fullScanDevices": "Full Scan Devices"
   },
   "common": {
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "close": "Close"
   }
 }

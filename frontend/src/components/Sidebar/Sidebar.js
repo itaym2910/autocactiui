@@ -145,7 +145,7 @@ const Sidebar = ({
             className="secondary"
             style={{ marginBottom: '10px', border: '1px solid var(--accent-primary)' }}
           >
-            🛡️ {t('sidebar.adminPanel')}
+             {t('sidebar.adminPanel')}
           </button>
         )}
 

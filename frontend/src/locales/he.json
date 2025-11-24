@@ -96,11 +96,22 @@
     "selectByType": "בחר לפי סוג...",
     "endDeviceIdentifier": "התקן קצה (ללא IP)",
     "importMap": "ייבא מפה",
+    
     "download": "הורדה",
     "downloadMap": "שמור כקובץ JSON",
     "downloadPng": "שמור כתמונה (PNG)",
     "selectDownloadFormat": "בחר פורמט הורדה",
-    "selectDownloadDesc": "בחר את האופן בו תרצה לייצא את המפה:"
+    "selectDownloadDesc": "בחר את האופן בו תרצה לייצא את המפה:",
+    "viewerMode": "מצב צפייה: העלאה מבוטלת",
+    "adminPanel": "ניהול משתמשים"
+  },
+  "admin": {
+    "title": "הרשאות משתמשים",
+    "username": "שם משתמש",
+    "privilege": "רמת הרשאה",
+    "me": "אני",
+    "errorFetch": "טעינת רשימת המשתמשים נכשלה.",
+    "errorUpdate": "עדכון הרשאת המשתמש נכשל."
   },
   "startup": {
     "title": "יוצר מפות רשת אינטראקטיבי",
@@ -136,6 +147,7 @@
     "fullScanDevices": "התקנים מסריקה מלאה"
   },
   "common": {
-    "cancel": "ביטול"
+    "cancel": "ביטול",
+    "close": "סגור"
   }
 }
