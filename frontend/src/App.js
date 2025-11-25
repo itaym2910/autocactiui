@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { ReactFlowProvider } from 'react-flow-renderer';
 import { useTranslation } from 'react-i18next';
-import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'; // <--- Router Imports
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import * as htmlToImage from 'html-to-image';
 
 import { useThemeManager } from './hooks/useThemeManager';
@@ -21,8 +21,8 @@ import ContextMenu from './components/ContextMenu/ContextMenu';
 import UploadSuccessPopup from './components/common/UploadSuccessPopup';
 import NeighborsPopup from './components/common/NeighborsPopup';
 import AdminPanel from './components/Admin/AdminPanel';
-import Forbidden from './components/errors/Forbidden.js'; 
-import NotFound from './components/errors/NotFound.js'; 
+import NotFound  from './components/errors/NotFound';
+import  Forbidden from './components/errors/Forbidden';
 
 
 import * as api from './services/apiService';
@@ -39,7 +39,6 @@ export const NodeContext = React.createContext(null);
 
 // ==========================================
 // 1. DASHBOARD COMPONENT (Protected Area)
-// Contains all Map, Sidebar, and Node logic
 // ==========================================
 const Dashboard = ({ token, currentUser, onLogout }) => {
   const [error, setError] = useState('');
@@ -95,7 +94,6 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
     bringToFront,
     sendToBack,
     selectAllByType,
-    confirmPreviewNode,
     confirmNeighbor,
     handleFullScan,
     setLoading: setMapHookLoading,
@@ -105,7 +103,9 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
 
   // --- Memos ---
   const nodeTypes = useMemo(() => ({ custom: CustomNode, group: GroupNode, text: TextNode }), []);
-  const availableIcons = useMemo(() => Object.keys(ICONS_BY_THEME).filter(k => k !== 'Unknown'), []);
+  
+  // --- MODIFIED: Removed the .filter() so "Unknown" is now included ---
+  const availableIcons = useMemo(() => Object.keys(ICONS_BY_THEME), []);
 
   const selectedCustomNode = useMemo(() => 
     selectedElements.length === 1 && selectedElements[0].type === 'custom' ? selectedElements[0] : null,
@@ -501,7 +501,6 @@ function App() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Restore user info on load
   useEffect(() => {
     const storedUser = localStorage.getItem('user_info');
     if (storedUser) {
