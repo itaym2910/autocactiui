@@ -43,49 +43,66 @@ const AdminPanel = ({ isOpen, onClose, currentUser }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="admin-overlay">
-      <div className="admin-modal">
+    <div className="admin-overlay" onClick={onClose}>
+      <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
         <div className="admin-header">
           <h2>{t('admin.title') || "User Management"}</h2>
-          <button className="close-btn" onClick={onClose}>×</button>
+          <button className="close-btn" onClick={onClose} aria-label="Close">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
         </div>
 
-        {error && <div className="admin-error">{error}</div>}
+        {error && (
+          <div className="admin-error">
+            <span>⚠️</span> {error}
+          </div>
+        )}
 
-        <div className="admin-content">
+        <div className="admin-content custom-scrollbar">
           {loading ? (
-            <p>{t('app.loading')}</p>
+            <div className="admin-loading">
+              <div className="spinner"></div>
+              <p>{t('app.loading') || "Loading..."}</p>
+            </div>
           ) : (
             <table className="user-table">
               <thead>
                 <tr>
-                  <th>{t('admin.username')}</th>
-                  <th>{t('admin.privilege')}</th>
+                  <th>{t('admin.username') || "User"}</th>
+                  <th>{t('admin.privilege') || "Role"}</th>
                 </tr>
               </thead>
               <tbody>
-                {users.map(user => (
-                  <tr key={user.id}>
-                    <td>
-                      {user.username}
-                      {currentUser && user.id === currentUser.id && (
-                        <span className="me-badge">{t('admin.me')}</span>
-                      )}
-                    </td>
-                    <td>
-                      <select 
-                        value={user.privilege}
-                        onChange={(e) => handlePrivilegeChange(user.id, e.target.value)}
-                        disabled={currentUser && user.id === currentUser.id} 
-                        className="privilege-select"
-                      >
-                        <option value="user">User (Restricted Upload)</option>
-                        <option value="admin">Admin (Full Access)</option>
-                        <option value="viewer">Viewer (No Upload)</option>
-                      </select>
-                    </td>
-                  </tr>
-                ))}
+                {users.map(user => {
+                  const isMe = currentUser && user.id === currentUser.id;
+                  return (
+                    <tr key={user.id} className={isMe ? "row-me" : ""}>
+                      <td>
+                        <div className="user-info">
+                          <span className="user-name">{user.username}</span>
+                          {isMe && <span className="me-badge">{t('admin.me') || "You"}</span>}
+                        </div>
+                      </td>
+                      <td>
+                        <div className="select-wrapper">
+                          <select 
+                            value={user.privilege}
+                            onChange={(e) => handlePrivilegeChange(user.id, e.target.value)}
+                            disabled={isMe} 
+                            className={`privilege-select role-${user.privilege}`}
+                          >
+                            <option value="user">User</option>
+                            <option value="admin">Admin</option>
+                            <option value="viewer">Viewer</option>
+                          </select>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
