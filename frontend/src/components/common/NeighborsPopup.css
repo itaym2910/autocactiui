@@ -487,3 +487,127 @@
     border-radius: 10px;
     border: 1px solid var(--border-color);
 }
+/* --- Logic for Expanded Cards with Multiple Links --- */
+
+/* 1. Allow the card to grow when expanded */
+.neighbor-item.expanded {
+    aspect-ratio: auto; /* Remove the square constraint */
+    min-height: 200px; /* Ensure it doesn't collapse too small */
+    justify-content: flex-start; /* Stack items from top */
+    gap: 12px;
+}
+
+/* 2. Style the "X Links" Badge/Toggle */
+.link-count-badge {
+    margin-top: 8px;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: fit-content;
+}
+
+.link-count-badge:hover {
+    background-color: var(--bg-secondary);
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+}
+
+.link-count-badge svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* 3. Container for the list of links */
+.neighbor-links-container {
+    width: 100%;
+    margin: 4px 0 12px 0;
+    border: 1px solid var(--border-color-light);
+    border-radius: 8px;
+    background-color: var(--bg-secondary);
+    overflow: hidden;
+    animation: slideDownLinks 0.2s ease-out;
+}
+
+@keyframes slideDownLinks {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.neighbor-links-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 150px; /* Scroll if too many links */
+    overflow-y: auto;
+}
+
+/* Scrollbar for the inner link list */
+.neighbor-links-list::-webkit-scrollbar {
+    width: 4px;
+}
+.neighbor-links-list::-webkit-scrollbar-thumb {
+    background-color: var(--border-color);
+    border-radius: 4px;
+}
+
+/* 4. Individual Link Item */
+.link-subitem {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border-color-light);
+    background: transparent;
+    cursor: default; /* Don't trigger card click */
+}
+
+.link-subitem:last-child {
+    border-bottom: none;
+}
+
+.link-subitem:hover {
+    background-color: rgba(0,0,0,0.02);
+}
+
+/* 5. Small Checkbox for Links */
+.link-checkbox {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    border: 2px solid var(--border-color);
+    margin-right: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background-color: var(--bg-primary);
+    flex-shrink: 0;
+}
+
+.link-checkbox.checked {
+    background-color: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: white;
+}
+
+.link-checkbox svg {
+    width: 12px;
+    height: 12px;
+}
+
+.link-name {
+    font-size: 0.8rem;
+    font-family: 'Courier New', monospace;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

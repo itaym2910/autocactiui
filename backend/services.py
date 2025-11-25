@@ -9,8 +9,6 @@ import map_renderer
 import random
 
 # --- Mock Authentication Data ---
-# In a real application, this would be replaced with a proper database
-# and secure password management. The password 'admin' is hashed.
 MOCK_USERS = {
     "admin": {
         "hash": "pbkdf2:sha256:600000$hUSaowPe1mJ14sCt$0392e20b3a323a6368d1502446a0c0a911765c92471f09c647b593685f6f7051"
@@ -18,7 +16,6 @@ MOCK_USERS = {
 }
 
 # --- Mock Task Queue ---
-# In a real application, this would be managed by a system like Celery and Redis.
 MOCK_TASKS = {}
 
 
@@ -28,12 +25,18 @@ def verify_user(username, password):
     if user:
         return {"username": username}
     return None
-# ---
 
+# ---
 # Mock Database simulating your network devices and connections based on the new API spec
 MOCK_NETWORK = {
     "10.10.1.3": {
         "hostname": "Core-Router-1",
+        "type": "Router",
+        "model": "Cisco CSR1000V",
+    },
+    # --- NEW: Second Core Router for Multi-Link Test ---
+    "10.10.1.4": {
+        "hostname": "Core-Router-2",
         "type": "Router",
         "model": "Cisco CSR1000V",
     },
@@ -77,7 +80,7 @@ MOCK_NETWORK = {
         "type": "Unknown Type",
         "model": "Custom Appliance",
     },
-    # --- New Data Center Devices ---
+    # --- Data Center Devices ---
     "10.20.1.1": {
         "hostname": "DC-Core-Router-1",
         "type": "Router",
@@ -100,8 +103,14 @@ MOCK_NETWORK = {
     },
      "10.20.10.101": {
         "hostname": "Server-B",
-        "type": "Switch", # Using switch icon for servers
+        "type": "Switch", 
         "model": "HP ProLiant DL380"
+    },
+    # --- NEW: Storage Array for Multi-Link Test ---
+    "10.20.50.50": {
+        "hostname": "Storage-Array-1",
+        "type": "Storage", # Ensure you have an icon for this or it falls back to unknown
+        "model": "NetApp FAS"
     },
     # --- DEVICES ONLY FOUND VIA FULL SCAN (ARP/IP SCAN) ---
     "10.99.99.1": {
@@ -113,6 +122,11 @@ MOCK_NETWORK = {
         "hostname": "Unmanaged-Switch-Lab",
         "type": "Switch",
         "model": "Netgear ProSafe"
+    },
+    "10.99.99.100": {
+        "hostname": "Unknown-MultiLink-Device",
+        "type": "Unknown Type",
+        "model": "Unknown"
     },
     "192.168.1.200": {
         "hostname": "Hidden-Camera-1",
@@ -165,10 +179,20 @@ MOCK_NEIGHBORS = {
         {"interface": "GigabitEthernet3", "hostname": "Dist-Switch-A", "ip": "10.10.1.2", "description": "Redundant Uplink to Dist-A", "bandwidth": "10G"},
         {"interface": "TenGigabitEthernet4", "hostname": "DC-Core-Router-1", "ip": "10.20.1.1", "description": "DC Interconnect 1", "bandwidth": "40G"},
         {"interface": "TenGigabitEthernet5", "hostname": "DC-Core-Router-1", "ip": "10.20.1.1", "description": "DC Interconnect 2", "bandwidth": "40G"},
-        # ... (Existing large list of neighbors for 10.10.1.3) ...
+        
+        # --- NEW: Triple Link to Core-Router-2 ---
+        {"interface": "TenGigabitEthernet6", "hostname": "Core-Router-2", "ip": "10.10.1.4", "description": "Cross-Core Link 1", "bandwidth": "10G"},
+        {"interface": "TenGigabitEthernet7", "hostname": "Core-Router-2", "ip": "10.10.1.4", "description": "Cross-Core Link 2", "bandwidth": "10G"},
+        {"interface": "TenGigabitEthernet8", "hostname": "Core-Router-2", "ip": "10.10.1.4", "description": "Cross-Core Link 3", "bandwidth": "10G"},
+
         {"interface": "GigabitEthernet1/1", "hostname": "Extra-Access-SW-1", "ip": "192.168.10.1", "description": "Link to SW 1", "bandwidth": "1G"},
         {"interface": "TenGigabitEthernet2/1", "hostname": "Branch-Router-1", "ip": "10.100.1.1", "description": "Link to Branch 1", "bandwidth": "1G"},
-        # (Truncated for brevity, assume the rest of the original list is here)
+    ],
+    # --- NEW: Neighbors for Core-Router-2 ---
+    "10.10.1.4": [
+        {"interface": "TenGigabitEthernet6", "hostname": "Core-Router-1", "ip": "10.10.1.3", "description": "Cross-Core Link 1", "bandwidth": "10G"},
+        {"interface": "TenGigabitEthernet7", "hostname": "Core-Router-1", "ip": "10.10.1.3", "description": "Cross-Core Link 2", "bandwidth": "10G"},
+        {"interface": "TenGigabitEthernet8", "hostname": "Core-Router-1", "ip": "10.10.1.3", "description": "Cross-Core Link 3", "bandwidth": "10G"},
     ],
     "10.10.1.2": [
         {"interface": "TenGigabitEthernet1/1/1", "hostname": "Core-Router-1", "ip": "10.10.1.3", "description": "Uplink to Core", "bandwidth": "10G"},
@@ -221,6 +245,14 @@ MOCK_NEIGHBORS = {
         {"interface": "Ethernet11", "hostname": "Server-A", "ip": "10.20.10.100", "description": "LACP to Server-A (2)", "bandwidth": "10G"},
         {"interface": "Ethernet12", "hostname": "Server-A", "ip": "10.20.10.100", "description": "LACP to Server-A (3)", "bandwidth": "10G"},
         {"interface": "Ethernet13", "hostname": "Server-A", "ip": "10.20.10.100", "description": "LACP to Server-A (4)", "bandwidth": "10G"},
+        # --- NEW: Dual Link to Storage ---
+        {"interface": "Ethernet20", "hostname": "Storage-Array-1", "ip": "10.20.50.50", "description": "iSCSI Path A", "bandwidth": "25G"},
+        {"interface": "Ethernet21", "hostname": "Storage-Array-1", "ip": "10.20.50.50", "description": "iSCSI Path B", "bandwidth": "25G"},
+    ],
+    # --- NEW: Neighbors for Storage Array ---
+    "10.20.50.50": [
+         {"interface": "e0a", "hostname": "DC-Dist-Switch-C", "ip": "10.20.2.1", "description": "Uplink A", "bandwidth": "25G"},
+         {"interface": "e0b", "hostname": "DC-Dist-Switch-C", "ip": "10.20.2.1", "description": "Uplink B", "bandwidth": "25G"},
     ],
     "10.20.2.2": [
         {"interface": "Ethernet1", "hostname": "DC-Core-Router-1", "ip": "10.20.1.1", "description": "Uplink to DC Core", "bandwidth": "100G"},
@@ -241,7 +273,6 @@ MOCK_NEIGHBORS = {
     # --- Extra neighbors for default device (reverse connections) ---
     "192.168.10.1": [{"interface": "GigabitEthernet0/1", "hostname": "Core-Router-1", "ip": "10.10.1.3", "description": "Uplink", "bandwidth": "1G"}],
     "10.100.1.1": [{"interface": "GigabitEthernet0/0/0", "hostname": "Core-Router-1", "ip": "10.10.1.3", "description": "WAN Link", "bandwidth": "1G"}],
-    # ... (Assume rest of reverse connections exist)
 }
 
 # --- NEW MOCK DATA: FULL SCAN EXTRAS ---
@@ -249,7 +280,10 @@ MOCK_NEIGHBORS = {
 MOCK_FULL_SCAN_EXTRAS = {
     "10.10.1.3": [
         {"interface": "Vlan999", "hostname": "Shadow-IT-Router", "ip": "10.99.99.1", "description": "ARP Entry - Unknown Router", "bandwidth": "Unknown"},
-        {"interface": "Vlan999", "hostname": "Unmanaged-Switch-Lab", "ip": "10.99.99.50", "description": "ARP Entry - Lab", "bandwidth": "Unknown"}
+        {"interface": "Vlan999", "hostname": "Unmanaged-Switch-Lab", "ip": "10.99.99.50", "description": "ARP Entry - Lab", "bandwidth": "Unknown"},
+        # --- NEW: Multi-Link detected in Full Scan ---
+        {"interface": "Vlan100", "hostname": "Unknown-MultiLink-Device", "ip": "10.99.99.100", "description": "Ghost Device Link 1", "bandwidth": "Unknown"},
+        {"interface": "Vlan101", "hostname": "Unknown-MultiLink-Device", "ip": "10.99.99.100", "description": "Ghost Device Link 2", "bandwidth": "Unknown"},
     ],
     "10.10.1.2": [
          {"interface": "GigabitEthernet2/0/24", "hostname": "IoT-Gateway", "ip": "10.10.1.250", "description": "MAC Table Entry", "bandwidth": "100M"}
