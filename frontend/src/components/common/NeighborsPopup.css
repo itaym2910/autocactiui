@@ -1,6 +1,8 @@
 /* frontend/src/components/common/NeighborsPopup.css */
 
-/* --- Overlay & Container --- */
+/* ========================================= */
+/* --- 1. Main Overlay & Container --- */
+/* ========================================= */
 .neighbor-popup-overlay {
     position: fixed;
     top: 0;
@@ -84,7 +86,9 @@
     height: 18px;
 }
 
-/* --- Header Section --- */
+/* ========================================= */
+/* --- 2. Header & Search --- */
+/* ========================================= */
 .neighbor-popup-header {
     flex-shrink: 0;
     padding-bottom: 20px;
@@ -165,7 +169,9 @@
     box-shadow: 0 0 0 4px rgba(var(--accent-primary-rgb, 59, 130, 246), 0.1);
 }
 
-/* --- Body Layout --- */
+/* ========================================= */
+/* --- 3. Body & Grid Layout --- */
+/* ========================================= */
 .neighbor-popup-body {
     display: flex;
     flex-direction: column;
@@ -196,7 +202,6 @@
     color: var(--accent-primary);
 }
 
-/* --- Grid Panel --- */
 .neighbor-grid-panel {
     flex-grow: 1;
     overflow-y: auto;
@@ -204,6 +209,9 @@
     padding-bottom: 8px;
     padding-right: 12px;
     margin-right: -4px;
+    /* Scrollbar Styling */
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
 }
 
 .rtl .neighbor-grid-panel {
@@ -211,6 +219,26 @@
     padding-left: 12px;
     margin-right: 0;
     margin-left: -4px;
+}
+
+/* Webkit Scrollbar */
+.neighbor-grid-panel::-webkit-scrollbar {
+    width: 8px;
+}
+.neighbor-grid-panel::-webkit-scrollbar-track {
+    background: transparent;
+    margin: 4px 0;
+}
+.neighbor-grid-panel::-webkit-scrollbar-thumb {
+    background-color: var(--border-color);
+    border-radius: 20px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+    transition: background-color 0.2s ease;
+}
+.neighbor-grid-panel::-webkit-scrollbar-thumb:hover {
+    background-color: var(--accent-primary);
+    border-color: transparent;
 }
 
 .neighbor-grid {
@@ -222,9 +250,42 @@
     gap: 16px;
 }
 
-/* --- Neighbor Item Card --- */
+/* --- Sections --- */
+.neighbor-section {
+    margin-bottom: 24px;
+}
+
+.neighbor-section-title {
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    margin: 0 0 12px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color-light);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.full-scan-title {
+    color: var(--accent-primary);
+}
+
+.badge {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+}
+
+/* ========================================= */
+/* --- 4. Neighbor Item Card --- */
+/* ========================================= */
 .neighbor-item {
-    aspect-ratio: 1 / 1;
+    aspect-ratio: 1 / 1; /* Force square shape */
     background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-secondary) 100%);
     border: 2px solid var(--border-color-light);
     border-radius: 12px;
@@ -253,7 +314,7 @@
     background: color-mix(in srgb, var(--accent-primary) 8%, var(--bg-primary));
 }
 
-/* --- Selection Checkbox --- */
+/* --- Selection Checkbox (Top Corner) --- */
 .selection-checkbox {
     position: absolute;
     top: 10px;
@@ -315,7 +376,43 @@
     font-family: 'Courier New', monospace;
 }
 
-/* ... [Keep .add-neighbor-button styles as they were] ... */
+/* --- Link Count Badge (The "Manage Links" Button) --- */
+.link-count-badge {
+    margin-top: 8px;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 6px 12px;
+    border-radius: 20px; /* Pill shape */
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.link-count-badge:hover {
+    background-color: var(--bg-primary);
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.link-count-badge.partial {
+    background-color: #fff3cd;
+    color: #856404;
+    border-color: #ffeeba;
+}
+
+.link-count-badge svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* --- Add Button (On Card) --- */
 .add-neighbor-button {
     padding: 8px 16px;
     width: 100%;
@@ -352,7 +449,9 @@
     box-shadow: none;
 }
 
-/* --- Footer Section --- */
+/* ========================================= */
+/* --- 5. Footer & Full Scan Button --- */
+/* ========================================= */
 .neighbor-popup-footer {
     flex-shrink: 0;
     padding-top: 16px;
@@ -363,14 +462,11 @@
     gap: 12px; 
 }
 
-/* --- Full Scan Button (Updated to match Add Button) --- */
 .full-scan-button {
-    /* Match add-neighbor-button properties exactly */
     padding: 8px 16px;
     width: 100%;
     font-size: 0.85rem;
     font-weight: 700;
-    /* Same Color (Green Gradient) */
     background: rgb(39, 131, 253); 
     color: var(--text-on-accent);
     border: none;
@@ -380,8 +476,6 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    
-    /* Flex alignment for the icon */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -406,208 +500,301 @@
     box-shadow: none;
 }
 
-/* Optional: Icon specific tweak inside the button */
 .full-scan-button svg {
     width: 18px;
     height: 18px;
     stroke-width: 2.5;
 }
 
-/* Rotating animation for the icon only on hover */
 .full-scan-button:hover svg {
     transform: rotate(180deg);
     transition: transform 0.5s ease;
 }
 
-/* --- Modern Scrollbar Styles --- */
+/* ========================================= */
+/* --- 6. New Link Selection Popup --- */
+/* ========================================= */
 
-/* Target the scrollable panel */
-.neighbor-grid-panel {
-    /* Firefox support */
+
+/* Nested Overlay with Blur */
+.link-popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 21000;
+    background-color: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px); /* Strong blur for focus */
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeInOverlay 0.3s ease;
+}
+
+@keyframes fadeInOverlay {
+    from { opacity: 0; backdrop-filter: blur(0px); }
+    to { opacity: 1; backdrop-filter: blur(8px); }
+}
+
+/* Modal Content Card */
+.link-popup-content {
+    background-color: var(--bg-primary);
+    width: 420px;
+    max-width: 90%;
+    border-radius: 20px; /* Larger, smoother corners */
+    box-shadow: 
+        0 20px 25px -5px rgba(0, 0, 0, 0.1), 
+        0 10px 10px -5px rgba(0, 0, 0, 0.04),
+        0 0 0 1px var(--border-color-light); /* Subtle border ring */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transform-origin: center center;
+    animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes popIn {
+    from { opacity: 0; transform: scale(0.95) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* --- Header --- */
+.link-popup-header {
+    padding: 20px 24px 12px 24px;
+    background: var(--bg-primary); /* Seamless header */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.link-popup-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+}
+
+.close-btn-mini {
+    background: var(--bg-secondary);
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.close-btn-mini:hover {
+    background-color: var(--border-color);
+    color: var(--text-primary);
+    transform: rotate(90deg);
+}
+
+/* --- Subheader (Context Bar) --- */
+.link-popup-subheader {
+    padding: 0 24px 16px 24px;
+    background-color: var(--bg-primary);
+    border-bottom: 1px solid var(--border-color-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+}
+
+.link-popup-subheader span {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    font-family: 'Courier New', monospace; /* Tech feel for hostname */
+    background: var(--bg-secondary);
+    padding: 2px 8px;
+    border-radius: 6px;
+}
+
+.text-btn {
+    background: none;
+    border: none;
+    color: var(--accent-primary);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background 0.2s;
+}
+.text-btn:hover { 
+    background-color: color-mix(in srgb, var(--accent-primary) 10%, transparent);
+}
+
+/* --- List --- */
+.link-popup-list {
+    list-style: none;
+    padding: 12px;
+    margin: 0;
+    max-height: 350px;
+    overflow-y: auto;
+    background-color: var(--bg-secondary); /* Contrast background for list area */
+    
+    /* Smooth Scrollbar */
     scrollbar-width: thin;
     scrollbar-color: var(--border-color) transparent;
 }
 
-/* Webkit support (Chrome, Edge, Safari) */
-.neighbor-grid-panel::-webkit-scrollbar {
-    width: 8px; /* Thin but clickable */
-}
-
-.neighbor-grid-panel::-webkit-scrollbar-track {
-    background: transparent; /* Transparent track for a floating look */
-    margin: 4px 0;
-}
-
-.neighbor-grid-panel::-webkit-scrollbar-thumb {
-    background-color: var(--border-color); /* Subtle grey by default */
-    border-radius: 20px; /* Fully rounded pill shape */
-    
-    /* This creates the "floating" effect with padding around the bar */
-    border: 2px solid transparent;
-    background-clip: content-box;
-    
-    transition: background-color 0.2s ease;
-}
-
-/* Hover State - Lights up with your theme color */
-.neighbor-grid-panel::-webkit-scrollbar-thumb:hover {
-    background-color: var(--accent-primary); /* Blue/Theme color */
-    border-color: transparent;
-}
-
-/* Add these styles to the end of NeighborsPopup.css */
-
-/* --- Section Separation --- */
-.neighbor-section {
-    margin-bottom: 24px;
-}
-
-.neighbor-section-title {
-    font-size: 0.9rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-secondary);
-    margin: 0 0 12px 0;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--border-color-light);
+.link-popup-list li {
+    padding: 12px 16px;
+    margin-bottom: 8px;
     display: flex;
     align-items: center;
-    gap: 8px;
-}
-
-.full-scan-title {
-    color: var(--accent-primary); /* Highlight the full scan header */
-}
-
-.badge {
-    background-color: var(--bg-secondary);
-    color: var(--text-primary);
-    font-size: 0.75rem;
-    padding: 2px 8px;
-    border-radius: 10px;
-    border: 1px solid var(--border-color);
-}
-/* --- Logic for Expanded Cards with Multiple Links --- */
-
-/* 1. Allow the card to grow when expanded */
-.neighbor-item.expanded {
-    aspect-ratio: auto; /* Remove the square constraint */
-    min-height: 200px; /* Ensure it doesn't collapse too small */
-    justify-content: flex-start; /* Stack items from top */
-    gap: 12px;
-}
-
-/* 2. Style the "X Links" Badge/Toggle */
-.link-count-badge {
-    margin-top: 8px;
     background-color: var(--bg-primary);
-    border: 1px solid var(--border-color);
-    color: var(--text-secondary);
-    padding: 4px 10px;
+    border: 1px solid transparent;
     border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 6px;
     cursor: pointer;
     transition: all 0.2s ease;
-    width: fit-content;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
 }
 
-.link-count-badge:hover {
-    background-color: var(--bg-secondary);
+.link-popup-list li:last-child {
+    margin-bottom: 0;
+}
+
+/* Hover State */
+.link-popup-list li:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    border-color: var(--border-color);
+}
+
+/* Active/Selected State */
+.link-popup-list li.active {
+    background-color: color-mix(in srgb, var(--accent-primary) 4%, var(--bg-primary));
     border-color: var(--accent-primary);
-    color: var(--accent-primary);
+    box-shadow: 0 0 0 1px var(--accent-primary);
 }
 
-.link-count-badge svg {
-    width: 14px;
-    height: 14px;
-}
-
-/* 3. Container for the list of links */
-.neighbor-links-container {
-    width: 100%;
-    margin: 4px 0 12px 0;
-    border: 1px solid var(--border-color-light);
-    border-radius: 8px;
-    background-color: var(--bg-secondary);
-    overflow: hidden;
-    animation: slideDownLinks 0.2s ease-out;
-}
-
-@keyframes slideDownLinks {
-    from { opacity: 0; transform: translateY(-5px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.neighbor-links-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    max-height: 150px; /* Scroll if too many links */
-    overflow-y: auto;
-}
-
-/* Scrollbar for the inner link list */
-.neighbor-links-list::-webkit-scrollbar {
-    width: 4px;
-}
-.neighbor-links-list::-webkit-scrollbar-thumb {
-    background-color: var(--border-color);
-    border-radius: 4px;
-}
-
-/* 4. Individual Link Item */
-.link-subitem {
-    display: flex;
-    align-items: center;
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--border-color-light);
-    background: transparent;
-    cursor: default; /* Don't trigger card click */
-}
-
-.link-subitem:last-child {
-    border-bottom: none;
-}
-
-.link-subitem:hover {
-    background-color: rgba(0,0,0,0.02);
-}
-
-/* 5. Small Checkbox for Links */
+/* Checkbox Styling */
 .link-checkbox {
-    width: 16px;
-    height: 16px;
-    border-radius: 4px;
+    width: 22px;
+    height: 22px;
     border: 2px solid var(--border-color);
-    margin-right: 10px;
+    border-radius: 8px; /* Softer square */
+    margin-right: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
     background-color: var(--bg-primary);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     flex-shrink: 0;
+}
+
+.link-popup-list li:hover .link-checkbox {
+    border-color: var(--text-secondary);
 }
 
 .link-checkbox.checked {
     background-color: var(--accent-primary);
     border-color: var(--accent-primary);
     color: white;
+    transform: scale(1.05);
 }
 
-.link-checkbox svg {
-    width: 12px;
-    height: 12px;
+.link-checkbox svg { 
+    width: 14px; 
+    height: 14px; 
+    stroke-width: 3.5;
 }
 
-.link-name {
-    font-size: 0.8rem;
+/* Details Text */
+.link-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex-grow: 1;
+}
+
+.link-iface {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-primary);
     font-family: 'Courier New', monospace;
+}
+
+/* Bandwidth "Tag" */
+.link-bw {
+    font-size: 0.7rem;
     color: var(--text-secondary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    background-color: var(--bg-secondary);
+    padding: 2px 8px;
+    border-radius: 10px;
+    width: fit-content;
+    font-weight: 600;
+    border: 1px solid var(--border-color-light);
+}
+
+/* Selected state tweaks */
+.link-popup-list li.active .link-bw {
+    background-color: white; /* Make tag pop on colored bg */
+    border-color: rgba(0,0,0,0.1);
+}
+
+/* --- Footer --- */
+.link-popup-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border-color-light);
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    background-color: var(--bg-primary);
+}
+
+.btn-cancel {
+    padding: 10px 20px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-secondary);
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.btn-cancel:hover { 
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.btn-save {
+    padding: 10px 24px;
+    border: none;
+    background: var(--accent-primary);
+    color: white;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    box-shadow: 0 4px 12px rgba(var(--accent-primary-rgb, 59, 130, 246), 0.25);
+    transition: all 0.2s ease;
+}
+
+.btn-save:hover { 
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(var(--accent-primary-rgb, 59, 130, 246), 0.35);
+    filter: brightness(1.05);
+}
+
+.btn-save:active {
+    transform: translateY(0);
+}
+
+.btn-save:disabled { 
+    opacity: 0.5; 
+    cursor: not-allowed; 
+    transform: none; 
+    box-shadow: none; 
 }
