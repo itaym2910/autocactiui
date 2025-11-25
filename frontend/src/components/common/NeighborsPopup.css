@@ -34,18 +34,24 @@
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 @keyframes slideIn {
-    from { 
-        transform: translateY(-30px) scale(0.95); 
-        opacity: 0; 
+    from {
+        transform: translateY(-30px) scale(0.95);
+        opacity: 0;
     }
-    to { 
-        transform: translateY(0) scale(1); 
-        opacity: 1; 
+
+    to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
     }
 }
 
@@ -186,7 +192,9 @@
 }
 
 .select-all-button {
-    padding: 8px 16px;
+    padding: 6px 16px;       /* Reduced padding */
+    width: fit-content;      /* Only takes necessary width */
+    min-width: 0;            /* Prevents flex stretching */
     font-size: 0.85rem;
     font-weight: 600;
     background-color: var(--bg-secondary);
@@ -195,12 +203,17 @@
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s ease;
+    display: inline-flex;    /* Keeps content centered and tight */
+    align-items: center;
+    justify-content: center;
 }
 
 .select-all-button:hover {
     border-color: var(--accent-primary);
     color: var(--accent-primary);
+    background-color: var(--bg-primary);
 }
+
 
 .neighbor-grid-panel {
     flex-grow: 1;
@@ -225,10 +238,12 @@
 .neighbor-grid-panel::-webkit-scrollbar {
     width: 8px;
 }
+
 .neighbor-grid-panel::-webkit-scrollbar-track {
     background: transparent;
     margin: 4px 0;
 }
+
 .neighbor-grid-panel::-webkit-scrollbar-thumb {
     background-color: var(--border-color);
     border-radius: 20px;
@@ -236,6 +251,7 @@
     background-clip: content-box;
     transition: background-color 0.2s ease;
 }
+
 .neighbor-grid-panel::-webkit-scrollbar-thumb:hover {
     background-color: var(--accent-primary);
     border-color: transparent;
@@ -285,7 +301,8 @@
 /* --- 4. Neighbor Item Card --- */
 /* ========================================= */
 .neighbor-item {
-    aspect-ratio: 1 / 1; /* Force square shape */
+    aspect-ratio: 1 / 1;
+    /* Force square shape */
     background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-secondary) 100%);
     border: 2px solid var(--border-color-light);
     border-radius: 12px;
@@ -383,7 +400,8 @@
     border: 1px solid var(--border-color);
     color: var(--text-secondary);
     padding: 6px 12px;
-    border-radius: 20px; /* Pill shape */
+    border-radius: 20px;
+    /* Pill shape */
     font-size: 0.75rem;
     font-weight: 600;
     display: flex;
@@ -398,7 +416,7 @@
     border-color: var(--accent-primary);
     color: var(--accent-primary);
     transform: translateY(-1px);
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
 .link-count-badge.partial {
@@ -449,8 +467,10 @@
     box-shadow: none;
 }
 
+/* ... previous styles ... */
+
 /* ========================================= */
-/* --- 5. Footer & Full Scan Button --- */
+/* --- 5. Footer & Action Buttons --- */
 /* ========================================= */
 .neighbor-popup-footer {
     flex-shrink: 0;
@@ -459,64 +479,76 @@
     margin-top: 16px;
     display: flex;
     flex-direction: column;
-    gap: 12px; 
+    align-items: center;
+    /* Center the buttons */
+    gap: 12px;
 }
 
+/* Make the "Add Selected" and "Full Scan" buttons manageable width */
+.neighbor-popup-footer .add-neighbor-button,
 .full-scan-button {
-    padding: 8px 16px;
-    width: 100%;
-    font-size: 0.85rem;
+    width: auto;
+    /* Stop them from being 100% wide */
+    min-width: 200px;
+    /* Minimum clickable width */
+    max-width: 100%;
+    padding: 10px 24px;
+    /* Comfortable padding */
+    margin-top: 0;
+    /* Remove margin if inherited */
+
+    /* Keep existing nice styles */
+    font-size: 0.9rem;
     font-weight: 700;
-    background: rgb(39, 131, 253); 
-    color: var(--text-on-accent);
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s ease;
+    border-radius: 10px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
+    transition: all 0.2s ease;
+}
+
+/* Specific colors for the Add Selected button in footer */
+.neighbor-popup-footer .add-neighbor-button {
+    background: linear-gradient(135deg, var(--accent-success) 0%, var(--accent-success) 100%);
+    color: var(--text-on-accent);
+    box-shadow: 0 4px 12px rgba(var(--accent-success-rgb, 16, 185, 129), 0.25);
+}
+
+.neighbor-popup-footer .add-neighbor-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(var(--accent-success-rgb, 16, 185, 129), 0.35);
+}
+
+/* Keep Full Scan button styles */
+.full-scan-button {
+    background: rgb(39, 131, 253);
+    color: white;
+    box-shadow: 0 4px 12px rgba(39, 131, 253, 0.25);
+    border: none;
 }
 
 .full-scan-button:hover {
-    transform: scale(1.02);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    filter: brightness(1.1);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(39, 131, 253, 0.35);
 }
 
-.full-scan-button:active {
-    transform: scale(0.98);
-}
-
-.full-scan-button:disabled {
-    opacity: 0.6;
+.full-scan-button:disabled,
+.neighbor-popup-footer .add-neighbor-button:disabled {
+    opacity: 0.5;
     cursor: not-allowed;
-    filter: grayscale(40%);
     transform: none;
     box-shadow: none;
-}
-
-.full-scan-button svg {
-    width: 18px;
-    height: 18px;
-    stroke-width: 2.5;
-}
-
-.full-scan-button:hover svg {
-    transform: rotate(180deg);
-    transition: transform 0.5s ease;
+    filter: grayscale(0.4);
 }
 
 /* ========================================= */
-/* --- 6. New Link Selection Popup --- */
+/* --- 6. New Link Selection Popup (Fixed) --- */
 /* ========================================= */
 
-
-/* Nested Overlay with Blur */
+/* Nested Overlay */
 .link-popup-overlay {
     position: fixed;
     top: 0;
@@ -524,57 +556,71 @@
     width: 100%;
     height: 100%;
     z-index: 21000;
-    background-color: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(8px); /* Strong blur for focus */
+    background-color: rgba(0, 0, 0, 0.5);
+    /* Slightly darker for better focus */
+    backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     display: flex;
     align-items: center;
     justify-content: center;
-    animation: fadeInOverlay 0.3s ease;
+    animation: fadeInOverlay 0.25s ease;
 }
 
 @keyframes fadeInOverlay {
-    from { opacity: 0; backdrop-filter: blur(0px); }
-    to { opacity: 1; backdrop-filter: blur(8px); }
+    from {
+        opacity: 0;
+        backdrop-filter: blur(0px);
+    }
+
+    to {
+        opacity: 1;
+        backdrop-filter: blur(8px);
+    }
 }
 
 /* Modal Content Card */
 .link-popup-content {
     background-color: var(--bg-primary);
-    width: 420px;
-    max-width: 90%;
-    border-radius: 20px; /* Larger, smoother corners */
-    box-shadow: 
-        0 20px 25px -5px rgba(0, 0, 0, 0.1), 
-        0 10px 10px -5px rgba(0, 0, 0, 0.04),
-        0 0 0 1px var(--border-color-light); /* Subtle border ring */
+    width: 500px;
+    /* Increased width for better readability */
+    max-width: 95%;
+    border-radius: 16px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    transform-origin: center center;
-    animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    animation: popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    border: 1px solid var(--border-color);
 }
 
 @keyframes popIn {
-    from { opacity: 0; transform: scale(0.95) translateY(10px); }
-    to { opacity: 1; transform: scale(1) translateY(0); }
+    from {
+        opacity: 0;
+        transform: scale(0.96) translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
 }
 
 /* --- Header --- */
 .link-popup-header {
-    padding: 20px 24px 12px 24px;
-    background: var(--bg-primary); /* Seamless header */
+    padding: 24px 28px;
+    background: var(--bg-primary);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    border-bottom: 1px solid var(--border-color-light);
 }
 
 .link-popup-header h3 {
     margin: 0;
-    font-size: 1.25rem;
+    font-size: 1.4rem;
+    /* Larger Title */
     font-weight: 700;
     color: var(--text-primary);
-    letter-spacing: -0.01em;
 }
 
 .close-btn-mini {
@@ -582,9 +628,10 @@
     border: none;
     color: var(--text-secondary);
     cursor: pointer;
-    width: 32px;
-    height: 32px;
-    border-radius: 12px;
+    width: 36px;
+    /* Larger hit area */
+    height: 36px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -594,207 +641,194 @@
 .close-btn-mini:hover {
     background-color: var(--border-color);
     color: var(--text-primary);
-    transform: rotate(90deg);
+}
+
+.close-btn-mini svg {
+    width: 20px;
+    height: 20px;
 }
 
 /* --- Subheader (Context Bar) --- */
 .link-popup-subheader {
-    padding: 0 24px 16px 24px;
-    background-color: var(--bg-primary);
+    padding: 16px 28px;
+    background-color: var(--bg-secondary);
+    /* Clearly separated background */
     border-bottom: 1px solid var(--border-color-light);
     display: flex;
     justify-content: space-between;
-    align-items: baseline;
+    align-items: center;
 }
 
 .link-popup-subheader span {
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: var(--text-secondary);
-    font-family: 'Courier New', monospace; /* Tech feel for hostname */
-    background: var(--bg-secondary);
-    padding: 2px 8px;
-    border-radius: 6px;
+    font-size: 1rem;
+    /* Readable size */
+    font-weight: 600;
+    color: var(--text-primary);
+    font-family: 'Courier New', monospace;
 }
 
 .text-btn {
     background: none;
     border: none;
     color: var(--accent-primary);
-    font-size: 0.85rem;
+    font-size: 0.95rem;
+    /* Larger text link */
     font-weight: 600;
     cursor: pointer;
-    padding: 4px 8px;
+    padding: 6px 10px;
     border-radius: 6px;
     transition: background 0.2s;
 }
-.text-btn:hover { 
-    background-color: color-mix(in srgb, var(--accent-primary) 10%, transparent);
+
+.text-btn:hover {
+    background-color: rgba(var(--accent-primary-rgb, 59, 130, 246), 0.1);
 }
 
-/* --- List --- */
+/* --- List Area --- */
 .link-popup-list {
     list-style: none;
-    padding: 12px;
+    padding: 16px;
+    /* More breathing room */
     margin: 0;
-    max-height: 350px;
+    max-height: 400px;
     overflow-y: auto;
-    background-color: var(--bg-secondary); /* Contrast background for list area */
-    
-    /* Smooth Scrollbar */
-    scrollbar-width: thin;
-    scrollbar-color: var(--border-color) transparent;
+    background-color: var(--bg-primary);
 }
 
 .link-popup-list li {
-    padding: 12px 16px;
-    margin-bottom: 8px;
+    padding: 14px 18px;
+    /* Larger touch targets */
+    margin-bottom: 10px;
     display: flex;
     align-items: center;
-    background-color: var(--bg-primary);
-    border: 1px solid transparent;
+    background-color: var(--bg-secondary);
+    border: 2px solid transparent;
+    /* Prepare for border transition */
     border-radius: 12px;
     cursor: pointer;
     transition: all 0.2s ease;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
 }
 
-.link-popup-list li:last-child {
-    margin-bottom: 0;
-}
-
-/* Hover State */
 .link-popup-list li:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    background-color: white;
     border-color: var(--border-color);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-/* Active/Selected State */
+/* Active State */
 .link-popup-list li.active {
-    background-color: color-mix(in srgb, var(--accent-primary) 4%, var(--bg-primary));
+    background-color: rgba(var(--accent-primary-rgb, 59, 130, 246), 0.04);
     border-color: var(--accent-primary);
-    box-shadow: 0 0 0 1px var(--accent-primary);
 }
 
-/* Checkbox Styling */
+/* Checkbox */
 .link-checkbox {
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
     border: 2px solid var(--border-color);
-    border-radius: 8px; /* Softer square */
-    margin-right: 16px;
+    border-radius: 6px;
+    margin-right: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: var(--bg-primary);
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    background-color: white;
+    transition: all 0.2s;
     flex-shrink: 0;
-}
-
-.link-popup-list li:hover .link-checkbox {
-    border-color: var(--text-secondary);
 }
 
 .link-checkbox.checked {
     background-color: var(--accent-primary);
     border-color: var(--accent-primary);
     color: white;
-    transform: scale(1.05);
 }
 
-.link-checkbox svg { 
-    width: 14px; 
-    height: 14px; 
-    stroke-width: 3.5;
+.link-checkbox svg {
+    width: 16px;
+    height: 16px;
+    stroke-width: 3;
 }
 
-/* Details Text */
+/* Text Details */
 .link-details {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 4px;
+    /* Space between Name and Bandwidth */
     flex-grow: 1;
 }
 
 .link-iface {
-    font-weight: 600;
-    font-size: 0.95rem;
+    font-weight: 700;
+    font-size: 1.05rem;
+    /* Big, clear text */
     color: var(--text-primary);
     font-family: 'Courier New', monospace;
 }
 
-/* Bandwidth "Tag" */
 .link-bw {
-    font-size: 0.7rem;
+    font-size: 0.85rem;
+    /* Readable secondary text */
     color: var(--text-secondary);
-    background-color: var(--bg-secondary);
-    padding: 2px 8px;
-    border-radius: 10px;
-    width: fit-content;
-    font-weight: 600;
-    border: 1px solid var(--border-color-light);
-}
-
-/* Selected state tweaks */
-.link-popup-list li.active .link-bw {
-    background-color: white; /* Make tag pop on colored bg */
-    border-color: rgba(0,0,0,0.1);
+    font-weight: 500;
 }
 
 /* --- Footer --- */
 .link-popup-footer {
-    padding: 16px 24px;
+    padding: 24px 28px;
     border-top: 1px solid var(--border-color-light);
     display: flex;
     justify-content: flex-end;
-    gap: 12px;
+    gap: 16px;
+    /* Space between buttons */
     background-color: var(--bg-primary);
 }
 
+/* Large Cancel Button */
 .btn-cancel {
-    padding: 10px 20px;
-    border: 1px solid transparent;
-    background: transparent;
+    padding: 12px 24px;
+    border: 1px solid var(--border-color);
+    background: white;
     color: var(--text-secondary);
     border-radius: 10px;
     cursor: pointer;
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: 1rem;
     transition: all 0.2s;
 }
 
-.btn-cancel:hover { 
+.btn-cancel:hover {
     background-color: var(--bg-secondary);
     color: var(--text-primary);
+    border-color: var(--border-color-dark);
 }
 
+/* Large Save Button */
 .btn-save {
-    padding: 10px 24px;
+    padding: 12px 32px;
     border: none;
     background: var(--accent-primary);
     color: white;
     border-radius: 10px;
     cursor: pointer;
-    font-weight: 600;
-    font-size: 0.9rem;
-    box-shadow: 0 4px 12px rgba(var(--accent-primary-rgb, 59, 130, 246), 0.25);
+    font-weight: 700;
+    font-size: 1rem;
+    box-shadow: 0 4px 6px rgba(var(--accent-primary-rgb, 59, 130, 246), 0.2);
     transition: all 0.2s ease;
 }
 
-.btn-save:hover { 
-    transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(var(--accent-primary-rgb, 59, 130, 246), 0.35);
-    filter: brightness(1.05);
+.btn-save:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(var(--accent-primary-rgb, 59, 130, 246), 0.3);
+    filter: brightness(1.1);
 }
 
 .btn-save:active {
     transform: translateY(0);
 }
 
-.btn-save:disabled { 
-    opacity: 0.5; 
-    cursor: not-allowed; 
-    transform: none; 
-    box-shadow: none; 
+.btn-save:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
 }
