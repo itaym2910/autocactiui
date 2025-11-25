@@ -96,7 +96,6 @@
     "selectByType": "בחר לפי סוג...",
     "endDeviceIdentifier": "התקן קצה (ללא IP)",
     "importMap": "ייבא מפה",
-    
     "download": "הורדה",
     "downloadMap": "שמור כקובץ JSON",
     "downloadPng": "שמור כתמונה (PNG)",
@@ -141,13 +140,20 @@
     "addSelected": "הוסף נבחרים ({{count}})",
     "selectAll": "בחר הכל",
     "deselectAll": "בטל בחירת הכל",
-    "fullScan": "סקירה מלאה", 
+    "fullScan": "סקירה מלאה",
     "fullScanTooltip": "סורק שכנים דרך Snmp",
     "regularDevices": "התקנים רגילים",
     "fullScanDevices": "התקנים מסריקה מלאה"
   },
   "common": {
     "cancel": "ביטול",
-    "close": "סגור"
+    "close": "סגור",
+    "home" : "חזור הביתה"
+  },
+  "errors": {
+    "404_title": "הדף לא נמצא",
+    "404_message": "לא הצלחנו למצוא את המפה או המשאב שחיפשת.",
+    "403_title": "גישה מוגבלת",
+    "403_message": "אין לך את ההרשאות המתאימות לצפייה באזור זה. אנא פנה למנהל המערכת."
   }
 }

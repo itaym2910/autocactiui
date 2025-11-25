@@ -96,7 +96,6 @@
     "selectByType": "Select by type...",
     "endDeviceIdentifier": "End Device (No IP)",
     "importMap": "Import Map",
-    
     "download": "Download",
     "downloadMap": "Save as JSON Config",
     "downloadPng": "Save as Image (PNG)",
@@ -148,6 +147,14 @@
   },
   "common": {
     "cancel": "Cancel",
-    "close": "Close"
+    "close": "Close",
+    "home" : "Retrun Home"
+  },
+  "errors": {
+    "404_title": "Page Not Found",
+    "404_message": "We couldn't locate the map or resource you're looking for.",
+    "403_title": "Access Restricted",
+    "403_message": "You don't have the necessary permissions to view this area. Please contact your network administrator."
   }
+
 }

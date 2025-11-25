@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { ReactFlowProvider } from 'react-flow-renderer';
 import { useTranslation } from 'react-i18next';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'; // <--- Router Imports
 import * as htmlToImage from 'html-to-image';
 
 import { useThemeManager } from './hooks/useThemeManager';
@@ -19,7 +20,10 @@ import TopToolbar from './components/TopToolbar/TopToolbar';
 import ContextMenu from './components/ContextMenu/ContextMenu';
 import UploadSuccessPopup from './components/common/UploadSuccessPopup';
 import NeighborsPopup from './components/common/NeighborsPopup';
-import AdminPanel from './components/Admin/AdminPanel'; // <--- Admin Import
+import AdminPanel from './components/Admin/AdminPanel';
+import Forbidden from './components/errors/Forbidden.js'; 
+import NotFound from './components/errors/NotFound.js'; 
+
 
 import * as api from './services/apiService';
 import { handleUploadProcess } from './services/mapExportService';
@@ -31,24 +35,22 @@ import './components/ContextMenu/ContextMenu.css';
 import './components/common/UploadSuccessPopup.css';
 import './components/common/NeighborsPopup.css';
 
-
 export const NodeContext = React.createContext(null);
 
-function App() {
+// ==========================================
+// 1. DASHBOARD COMPONENT (Protected Area)
+// Contains all Map, Sidebar, and Node logic
+// ==========================================
+const Dashboard = ({ token, currentUser, onLogout }) => {
   const [error, setError] = useState('');
-  const [isAuthLoading, setIsAuthLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [mapName, setMapName] = useState('My-Network-Map');
-  
-  // Auth & User State
-  const [token, setToken] = useState(() => localStorage.getItem('token'));
-  const [currentUser, setCurrentUser] = useState(null); // <--- Store User Info
   
   // UI State
   const [contextMenu, setContextMenu] = useState(null);
   const [uploadSuccessData, setUploadSuccessData] = useState(null);
   const [neighborPopup, setNeighborPopup] = useState({ isOpen: false, neighbors: [], sourceNode: null });
-  const [showAdminPanel, setShowAdminPanel] = useState(false); // <--- Admin Panel State
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [mapInteractionLoading, setMapInteractionLoading] = useState(false);
   
   const { t } = useTranslation();
@@ -145,14 +147,6 @@ function App() {
   }, [setMapHookError]);
 
   // --- Effects ---
-  // Restore user info on reload
-  useEffect(() => {
-    const storedUser = localStorage.getItem('user_info');
-    if (storedUser) {
-      setCurrentUser(JSON.parse(storedUser));
-    }
-  }, []);
-
   useEffect(() => {
     if (!contextMenu) return;
     const isNodeStillSelected = selectedElements.some(el => el.id === contextMenu.node.id);
@@ -179,38 +173,6 @@ function App() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [undo, redo]);
-
-  // --- Auth Handlers ---
-  const handleLogin = async (username, password) => {
-    setIsAuthLoading(true);
-    setAppError('');
-    try {
-      const response = await api.login(username, password);
-      // Expected response structure: { token: '...', user: { id: 1, privilege: 'admin', ... } }
-      const { token, user } = response.data;
-
-      localStorage.setItem('token', token);
-      setToken(token);
-
-      if (user) {
-        setCurrentUser(user);
-        localStorage.setItem('user_info', JSON.stringify(user));
-      }
-    } catch (err) {
-      setAppError(t('app.errorLogin'));
-    } finally {
-      setIsAuthLoading(false);
-    }
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user_info');
-    setToken(null);
-    setCurrentUser(null);
-    setShowAdminPanel(false);
-    resetMap();
-  };
 
   // --- Map Handlers ---
   const handleStart = async (ip, initialIconName) => {
@@ -277,7 +239,6 @@ function App() {
     }
   };
 
-  // --- Export (JSON) with Save As ---
   const handleDownloadConfig = useCallback(async () => {
     const dataStr = JSON.stringify({ nodes, edges, mapName }, null, 2);
     const fileName = `${mapName || 'network-map'}.json`;
@@ -299,11 +260,9 @@ function App() {
         if (err.name === 'AbortError') return;
       }
     }
-    // Fallback
     mapImportExport.downloadMapConfig(nodes, edges, mapName);
   }, [nodes, edges, mapName]);
 
-  // --- Export (PNG) with Save As ---
   const handleDownloadPng = useCallback(async () => {
     const mapElement = document.querySelector('.react-flow');
     if (!mapElement) {
@@ -398,10 +357,6 @@ function App() {
     setContextMenu({ node, top: event.clientY, left: event.clientX });
   }, [onNodeClick, setIsLoading, setAppError]);
 
-  if (!token) {
-    return <LoginScreen onLogin={handleLogin} error={error} isLoading={isAuthLoading} />;
-  }
-
   return (
     <NodeContext.Provider value={{ onUpdateNodeData: handleUpdateNodeData }}>
       <div className="app-container">
@@ -411,7 +366,7 @@ function App() {
           onAddGroup={handleAddGroup}
           onAddTextNode={handleAddTextNode}
           onResetMap={resetMap}
-          onLogout={handleLogout}
+          onLogout={onLogout}
           availableIcons={availableIcons}
           mapName={mapName}
           setMapName={setMapName}
@@ -431,7 +386,6 @@ function App() {
           onDownloadConfig={handleDownloadConfig}
           onDownloadPng={handleDownloadPng}
           
-          // Neighbors
           neighbors={availableNeighbors}
           onAddNeighbor={(neighbor) => {
             if (selectedCustomNode) {
@@ -439,7 +393,6 @@ function App() {
             }
           }}
 
-          // Admin Props
           currentUser={currentUser}
           onOpenAdmin={() => setShowAdminPanel(true)}
         />
@@ -460,7 +413,7 @@ function App() {
                 <StartupScreen 
                   onStart={handleStart} 
                   onImportConfig={handleImportConfig}
-                  isLoading={isAuthLoading || mapInteractionLoading}
+                  isLoading={mapInteractionLoading}
                   availableIcons={availableIcons}
                 />
               </div>
@@ -500,7 +453,7 @@ function App() {
             
             {error && <p className="error-message">{error}</p>}
             
-            {(isAuthLoading || isUploading || mapInteractionLoading) && (
+            {(isUploading || mapInteractionLoading) && (
               <p className="loading-message">
                 {isUploading ? t('app.processingMap') : t('app.loading')}
               </p>
@@ -523,7 +476,6 @@ function App() {
               onFullScan={() => handleFullScan(setIsLoading, setAppError)}
             />
 
-            {/* Admin Panel Popup */}
             <AdminPanel 
               isOpen={showAdminPanel} 
               onClose={() => setShowAdminPanel(false)}
@@ -534,6 +486,100 @@ function App() {
         </div>
       </div>
     </NodeContext.Provider>
+  );
+};
+
+// ==========================================
+// 2. MAIN APP COMPONENT (Router & Auth)
+// ==========================================
+function App() {
+  const { t } = useTranslation();
+  const [token, setToken] = useState(() => localStorage.getItem('token'));
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState('');
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Restore user info on load
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user_info');
+    if (storedUser) {
+      setCurrentUser(JSON.parse(storedUser));
+    }
+  }, []);
+
+  const handleLogin = async (username, password) => {
+    setIsAuthLoading(true);
+    setAuthError('');
+    try {
+      const response = await api.login(username, password);
+      const { token: newToken, user } = response.data;
+
+      localStorage.setItem('token', newToken);
+      setToken(newToken);
+
+      if (user) {
+        setCurrentUser(user);
+        localStorage.setItem('user_info', JSON.stringify(user));
+      }
+      navigate('/');
+    } catch (err) {
+      setAuthError(t('app.errorLogin') || 'Login failed');
+    } finally {
+      setIsAuthLoading(false);
+    }
+  };
+
+  const handleLogout = useCallback(() => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user_info');
+    setToken(null);
+    setCurrentUser(null);
+    navigate('/login');
+  }, [navigate]);
+
+  return (
+    <Routes>
+      {/* Login Route */}
+      <Route 
+        path="/login" 
+        element={
+          !token ? (
+            <LoginScreen 
+              onLogin={handleLogin} 
+              error={authError} 
+              isLoading={isAuthLoading} 
+            />
+          ) : (
+            <Navigate to="/" replace />
+          )
+        } 
+      />
+
+      {/* Main Dashboard Route (Protected) */}
+      <Route 
+        path="/" 
+        element={
+          token ? (
+            <Dashboard 
+              token={token} 
+              currentUser={currentUser} 
+              onLogout={handleLogout} 
+            />
+          ) : (
+            <Navigate to="/login" state={{ from: location }} replace />
+          )
+        } 
+      />
+
+      {/* Error Routes */}
+      <Route path="/403" element={<Forbidden />} />
+      <Route path="/404" element={<NotFound />} />
+      
+      {/* Catch-all Redirect */}
+      <Route path="*" element={<Navigate to="/404" replace />} />
+    </Routes>
   );
 }
 

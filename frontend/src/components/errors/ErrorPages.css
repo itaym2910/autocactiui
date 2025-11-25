@@ -1,0 +1,163 @@
+/* ErrorPages.css */
+
+/* --- Main Container with Depth --- */
+.error-container {
+  height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* subtle gradient background */
+  background: radial-gradient(
+    circle at 50% 50%, 
+    var(--bg-secondary, #f3f4f6) 0%, 
+    var(--bg-primary, #e5e7eb) 100%
+  );
+  padding: 20px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Optional: Background Pattern overlay */
+.error-container::before {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-image: radial-gradient(var(--border-color, #d1d5db) 1px, transparent 1px);
+  background-size: 30px 30px;
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+/* --- The Glass Card --- */
+.error-card {
+  background: rgba(255, 255, 255, 0.85); /* Fallback for light mode */
+  background: var(--bg-primary, rgba(255, 255, 255, 0.85));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.3));
+  border-radius: 24px;
+  padding: 60px 50px;
+  text-align: center;
+  max-width: 500px;
+  width: 100%;
+  
+  box-shadow: 
+    0 20px 50px -12px rgba(0, 0, 0, 0.15), 
+    0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+    
+  animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 10;
+}
+
+/* --- Animations --- */
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(40px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-15px); }
+  100% { transform: translateY(0px); }
+}
+
+/* --- The Big Icon --- */
+.error-icon-wrapper {
+  width: 100px;
+  height: 100px;
+  margin: 0 auto 10px auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: float 4s ease-in-out infinite;
+}
+
+.error-icon-wrapper svg {
+  width: 100%;
+  height: 100%;
+  stroke-width: 1.2;
+  filter: drop-shadow(0 10px 15px rgba(0,0,0,0.1));
+}
+
+/* --- Typography --- */
+.error-code-display {
+  font-size: 6rem;
+  line-height: 1;
+  font-weight: 900;
+  margin: 0;
+  letter-spacing: -0.05em;
+  
+  /* Gradient Text Effect */
+  background: linear-gradient(135deg, var(--text-primary, #333) 30%, var(--text-secondary, #999));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent; /* Fallback color handled by var above usually, but transparent needed for clip */
+}
+
+/* Specific gradients for 403 vs 404 (Optional override) */
+.code-404 {
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6); /* Blue to Purple */
+  -webkit-background-clip: text;
+}
+.code-403 {
+  background: linear-gradient(135deg, #ef4444, #f59e0b); /* Red to Orange */
+  -webkit-background-clip: text;
+}
+
+.error-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary, #111827);
+  margin: 10px 0 15px 0;
+}
+
+.error-message {
+  font-size: 1.05rem;
+  color: var(--text-secondary, #6b7280);
+  margin-bottom: 40px;
+  line-height: 1.6;
+}
+
+/* --- Buttons --- */
+.error-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+.btn-primary, .btn-secondary {
+  padding: 14px 28px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  min-width: 120px;
+}
+
+.btn-primary {
+  background-color: var(--accent-primary, #3b82f6);
+  color: white;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+}
+
+.btn-secondary {
+  background-color: transparent;
+  border: 2px solid var(--border-color, #e5e7eb);
+  color: var(--text-primary, #374151);
+}
+
+.btn-secondary:hover {
+  border-color: var(--text-secondary, #9ca3af);
+  background-color: var(--bg-secondary, #f9fafb);
+  transform: translateY(-2px);
+}
