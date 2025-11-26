@@ -130,7 +130,7 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
                 if (n.ip) return !nodeIdsOnMap.has(n.ip);
                 return !hostnamesOnMap.has(n.hostname);
             })
-            .map(n => ({ ...n, isFullScan: false })); // Explicitly mark as regular
+            .map(n => ({ ...n, isFullScan: false })); 
        
         const edgesToCreate = [];
         const neighborsToConnect = allNeighbors.filter(n => n.ip && nodeIdsOnMap.has(n.ip));
@@ -157,7 +157,7 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
     }
   }, [setState, t, onShowNeighborPopup, setSelectedElements]);
 
-  // --- 2. FULL SCAN (FIXED) ---
+  // --- 2. FULL SCAN ---
   const handleFullScan = useCallback(async (setLoading, setError) => {
     const sourceNode = selectedElements[0];
     if (!sourceNode || !sourceNode.data.ip) return;
@@ -180,35 +180,26 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
             const nodeIdsOnMap = new Set(nodesWithoutPreviews.map(n => n.id));
             const hostnamesOnMap = new Set(nodesWithoutPreviews.filter(n => n.data?.hostname).map(n => n.data.hostname));
 
-            // 1. Filter out nodes that are already physically on the map
             const potentialNeighbors = allNeighbors.filter(n => {
                 if (n.ip) return !nodeIdsOnMap.has(n.ip);
                 return !hostnamesOnMap.has(n.hostname);
             });
 
-            // 2. Get keys of currently displayed "Regular" neighbors
             const existingRegularKeys = new Set(
                 currentNeighborsRef.current.map(n => n.ip || n.hostname)
             );
 
-            // 3. Identify NEW neighbors found only by full scan
             const newFullScanNeighbors = [];
             potentialNeighbors.forEach(n => {
                 const key = n.ip || n.hostname;
-                // If it's NOT in the regular list, it's a Full Scan result
                 if (!existingRegularKeys.has(key)) {
                     newFullScanNeighbors.push({ ...n, isFullScan: true });
                 }
             });
 
-            // 4. Combine lists
             const combinedNeighbors = [...currentNeighborsRef.current, ...newFullScanNeighbors];
 
-            // 5. Update Local State AND Notify Parent Component
             setCurrentNeighbors(combinedNeighbors);
-            
-            // !!! THIS LINE WAS MISSING !!!
-            // Use the callback to update App.js state, forcing the popup to re-render
             onShowNeighborPopup(combinedNeighbors, sourceNode); 
 
             return prev; 
@@ -222,6 +213,7 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
     }
   }, [selectedElements, setState, t, onShowNeighborPopup]);
 
+  // --- 3. CONFIRM NEIGHBOR (MODIFIED) ---
   const confirmNeighbor = useCallback(async (neighborGroup, sourceNodeId, setLoading, setError, isBatchOperation = false) => {
     setLoading(true);
     setError('');
@@ -283,13 +275,25 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
         } else {
             const sourceNode = nodesRef.current.find(n => n.id === sourceNodeId);
             const position = { x: sourceNode.position.x + (Math.random() * 300 - 150), y: sourceNode.position.y + 200 };
+            
+            // --- MODIFIED SECTION START ---
+            // We now handle cases where API works but returns empty type, OR where API fails completely.
             try {
                 const deviceResponse = await api.getDeviceInfo(neighborIp);
-                confirmedNode = createNodeObject(deviceResponse.data, position);
+                const deviceData = deviceResponse.data;
+
+                // Safety Check: If type is null/undefined/empty string, force 'Unknown'
+                if (!deviceData.type) {
+                    deviceData.type = 'Unknown';
+                }
+
+                confirmedNode = createNodeObject(deviceData, position);
             } catch (infoError) {
+                // Network error or 404 - Fallback to Unknown type
                 const fallbackDeviceData = { ip: neighborIp, hostname: hostname, type: 'Unknown' };
                 confirmedNode = createNodeObject(fallbackDeviceData, position, 'Unknown');
             }
+            // --- MODIFIED SECTION END ---
         }
 
         let allNeighborsOfNewNode = [];
@@ -385,7 +389,6 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
         if (isDrag && !dragContext.current) {
              const context = { childrenMap: new Map() };
              dragContext.current = context;
-             // ... (Group logic) ...
         }
         if (isDrag) {
              const draggedNodeIds = new Set(changes.filter(c => c.dragging).map(c => c.id));
@@ -404,7 +407,6 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
              });
         }
         let nextNodes = applyNodeChanges(changes, prev.nodes);
-        // ... (Group children movement logic) ...
         return { ...prev, nodes: nextNodes };
     }, !isDragEnd);
     if (isDragEnd) { dragContext.current = null; setSnapLines([]); }
