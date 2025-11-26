@@ -42,7 +42,6 @@ const LinkSelectionModal = ({ group, initialSelection, onSave, onClose }) => {
     const [localSelection, setLocalSelection] = useState(new Set(initialSelection));
 
     // If no specific selection was passed (undefined), it means ALL are selected by default
-    // We initialize local state with all interfaces in that case
     useEffect(() => {
         if (!initialSelection || initialSelection.size === 0) {
             setLocalSelection(new Set(group.links.map(l => l.interface)));
@@ -306,9 +305,12 @@ const NeighborsPopup = ({
 
           return (
             <React.Fragment key={key}>
-                <li className={`neighbor-item ${isSelected ? 'selected' : ''}`}>
+                <li 
+                    className={`neighbor-item ${isSelected ? 'selected' : ''}`}
+                    onClick={() => handleToggleDevice(group)}
+                >
                   
-                  <div className="selection-checkbox" onClick={() => handleToggleDevice(group)}>
+                  <div className="selection-checkbox">
                     {isSelected && <CheckIcon />}
                   </div>
 

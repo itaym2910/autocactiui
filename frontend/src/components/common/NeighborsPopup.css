@@ -34,25 +34,13 @@
 }
 
 @keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-
-    to {
-        opacity: 1;
-    }
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 @keyframes slideIn {
-    from {
-        transform: translateY(-30px) scale(0.95);
-        opacity: 0;
-    }
-
-    to {
-        transform: translateY(0) scale(1);
-        opacity: 1;
-    }
+    from { transform: translateY(-30px) scale(0.95); opacity: 0; }
+    to { transform: translateY(0) scale(1); opacity: 1; }
 }
 
 /* --- Close Button --- */
@@ -192,9 +180,9 @@
 }
 
 .select-all-button {
-    padding: 6px 16px;       /* Reduced padding */
-    width: fit-content;      /* Only takes necessary width */
-    min-width: 0;            /* Prevents flex stretching */
+    padding: 6px 16px;
+    width: fit-content;
+    min-width: 0;
     font-size: 0.85rem;
     font-weight: 600;
     background-color: var(--bg-secondary);
@@ -203,7 +191,7 @@
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s ease;
-    display: inline-flex;    /* Keeps content centered and tight */
+    display: inline-flex;
     align-items: center;
     justify-content: center;
 }
@@ -214,7 +202,6 @@
     background-color: var(--bg-primary);
 }
 
-
 .neighbor-grid-panel {
     flex-grow: 1;
     overflow-y: auto;
@@ -222,7 +209,6 @@
     padding-bottom: 8px;
     padding-right: 12px;
     margin-right: -4px;
-    /* Scrollbar Styling */
     scrollbar-width: thin;
     scrollbar-color: var(--border-color) transparent;
 }
@@ -234,7 +220,6 @@
     margin-left: -4px;
 }
 
-/* Webkit Scrollbar */
 .neighbor-grid-panel::-webkit-scrollbar {
     width: 8px;
 }
@@ -302,7 +287,6 @@
 /* ========================================= */
 .neighbor-item {
     aspect-ratio: 1 / 1;
-    /* Force square shape */
     background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-secondary) 100%);
     border: 2px solid var(--border-color-light);
     border-radius: 12px;
@@ -345,7 +329,7 @@
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
-    pointer-events: none;
+    pointer-events: none; /* Crucial: lets click pass through to the card */
 }
 
 .rtl .selection-checkbox {
@@ -393,7 +377,7 @@
     font-family: 'Courier New', monospace;
 }
 
-/* --- Link Count Badge (The "Manage Links" Button) --- */
+/* --- Link Count Badge --- */
 .link-count-badge {
     margin-top: 8px;
     background-color: var(--bg-secondary);
@@ -401,7 +385,6 @@
     color: var(--text-secondary);
     padding: 6px 12px;
     border-radius: 20px;
-    /* Pill shape */
     font-size: 0.75rem;
     font-weight: 600;
     display: flex;
@@ -467,8 +450,6 @@
     box-shadow: none;
 }
 
-/* ... previous styles ... */
-
 /* ========================================= */
 /* --- 5. Footer & Action Buttons --- */
 /* ========================================= */
@@ -480,24 +461,16 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    /* Center the buttons */
     gap: 12px;
 }
 
-/* Make the "Add Selected" and "Full Scan" buttons manageable width */
 .neighbor-popup-footer .add-neighbor-button,
 .full-scan-button {
     width: auto;
-    /* Stop them from being 100% wide */
     min-width: 200px;
-    /* Minimum clickable width */
     max-width: 100%;
     padding: 10px 24px;
-    /* Comfortable padding */
     margin-top: 0;
-    /* Remove margin if inherited */
-
-    /* Keep existing nice styles */
     font-size: 0.9rem;
     font-weight: 700;
     border-radius: 10px;
@@ -510,7 +483,6 @@
     transition: all 0.2s ease;
 }
 
-/* Specific colors for the Add Selected button in footer */
 .neighbor-popup-footer .add-neighbor-button {
     background: linear-gradient(135deg, var(--accent-success) 0%, var(--accent-success) 100%);
     color: var(--text-on-accent);
@@ -522,7 +494,6 @@
     box-shadow: 0 6px 16px rgba(var(--accent-success-rgb, 16, 185, 129), 0.35);
 }
 
-/* Keep Full Scan button styles */
 .full-scan-button {
     background: rgb(39, 131, 253);
     color: white;
@@ -545,10 +516,9 @@
 }
 
 /* ========================================= */
-/* --- 6. New Link Selection Popup (Fixed) --- */
+/* --- 6. New Link Selection Popup --- */
 /* ========================================= */
 
-/* Nested Overlay */
 .link-popup-overlay {
     position: fixed;
     top: 0;
@@ -557,7 +527,6 @@
     height: 100%;
     z-index: 21000;
     background-color: rgba(0, 0, 0, 0.5);
-    /* Slightly darker for better focus */
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     display: flex;
@@ -567,22 +536,13 @@
 }
 
 @keyframes fadeInOverlay {
-    from {
-        opacity: 0;
-        backdrop-filter: blur(0px);
-    }
-
-    to {
-        opacity: 1;
-        backdrop-filter: blur(8px);
-    }
+    from { opacity: 0; backdrop-filter: blur(0px); }
+    to { opacity: 1; backdrop-filter: blur(8px); }
 }
 
-/* Modal Content Card */
 .link-popup-content {
     background-color: var(--bg-primary);
     width: 500px;
-    /* Increased width for better readability */
     max-width: 95%;
     border-radius: 16px;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
@@ -594,18 +554,10 @@
 }
 
 @keyframes popIn {
-    from {
-        opacity: 0;
-        transform: scale(0.96) translateY(8px);
-    }
-
-    to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-    }
+    from { opacity: 0; transform: scale(0.96) translateY(8px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-/* --- Header --- */
 .link-popup-header {
     padding: 24px 28px;
     background: var(--bg-primary);
@@ -618,7 +570,6 @@
 .link-popup-header h3 {
     margin: 0;
     font-size: 1.4rem;
-    /* Larger Title */
     font-weight: 700;
     color: var(--text-primary);
 }
@@ -629,7 +580,6 @@
     color: var(--text-secondary);
     cursor: pointer;
     width: 36px;
-    /* Larger hit area */
     height: 36px;
     border-radius: 8px;
     display: flex;
@@ -648,11 +598,9 @@
     height: 20px;
 }
 
-/* --- Subheader (Context Bar) --- */
 .link-popup-subheader {
     padding: 16px 28px;
     background-color: var(--bg-secondary);
-    /* Clearly separated background */
     border-bottom: 1px solid var(--border-color-light);
     display: flex;
     justify-content: space-between;
@@ -661,7 +609,6 @@
 
 .link-popup-subheader span {
     font-size: 1rem;
-    /* Readable size */
     font-weight: 600;
     color: var(--text-primary);
     font-family: 'Courier New', monospace;
@@ -672,7 +619,6 @@
     border: none;
     color: var(--accent-primary);
     font-size: 0.95rem;
-    /* Larger text link */
     font-weight: 600;
     cursor: pointer;
     padding: 6px 10px;
@@ -684,11 +630,9 @@
     background-color: rgba(var(--accent-primary-rgb, 59, 130, 246), 0.1);
 }
 
-/* --- List Area --- */
 .link-popup-list {
     list-style: none;
     padding: 16px;
-    /* More breathing room */
     margin: 0;
     max-height: 400px;
     overflow-y: auto;
@@ -697,13 +641,11 @@
 
 .link-popup-list li {
     padding: 14px 18px;
-    /* Larger touch targets */
     margin-bottom: 10px;
     display: flex;
     align-items: center;
     background-color: var(--bg-secondary);
     border: 2px solid transparent;
-    /* Prepare for border transition */
     border-radius: 12px;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -715,13 +657,11 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-/* Active State */
 .link-popup-list li.active {
     background-color: rgba(var(--accent-primary-rgb, 59, 130, 246), 0.04);
     border-color: var(--accent-primary);
 }
 
-/* Checkbox */
 .link-checkbox {
     width: 24px;
     height: 24px;
@@ -748,42 +688,35 @@
     stroke-width: 3;
 }
 
-/* Text Details */
 .link-details {
     display: flex;
     flex-direction: column;
     gap: 4px;
-    /* Space between Name and Bandwidth */
     flex-grow: 1;
 }
 
 .link-iface {
     font-weight: 700;
     font-size: 1.05rem;
-    /* Big, clear text */
     color: var(--text-primary);
     font-family: 'Courier New', monospace;
 }
 
 .link-bw {
     font-size: 0.85rem;
-    /* Readable secondary text */
     color: var(--text-secondary);
     font-weight: 500;
 }
 
-/* --- Footer --- */
 .link-popup-footer {
     padding: 24px 28px;
     border-top: 1px solid var(--border-color-light);
     display: flex;
     justify-content: flex-end;
     gap: 16px;
-    /* Space between buttons */
     background-color: var(--bg-primary);
 }
 
-/* Large Cancel Button */
 .btn-cancel {
     padding: 12px 24px;
     border: 1px solid var(--border-color);
@@ -802,7 +735,6 @@
     border-color: var(--border-color-dark);
 }
 
-/* Large Save Button */
 .btn-save {
     padding: 12px 32px;
     border: none;
