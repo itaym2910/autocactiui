@@ -1,5 +1,6 @@
 /* frontend/src/components/TopToolbar/TopToolbar.css */
 
+/* --- MAIN CONTAINER --- */
 .top-toolbar {
     width: 100%;
     flex-shrink: 0;
@@ -13,19 +14,32 @@
     z-index: 100;
     min-height: 65px;
     transition: background-color 0.2s ease;
+    
+    /* FIX: Allow scrolling if window is too small, prevents buttons disappearing */
+    overflow-x: auto; 
+    overflow-y: hidden;
 }
 
+/* Hide scrollbar for cleaner look */
+.top-toolbar::-webkit-scrollbar {
+    height: 0px;
+    background: transparent;
+}
+
+/* --- GROUPS (Label + Input) --- */
 .toolbar-group {
     display: flex;
     align-items: center;
     gap: 10px;
     padding: 8px 0;
+    flex-shrink: 0; /* Prevents inputs from getting crushed */
 }
 
 .toolbar-separator {
     width: 1px;
     height: 32px;
     background-color: var(--border-color);
+    flex-shrink: 0;
 }
 
 .toolbar-group label {
@@ -76,63 +90,79 @@
     height: 16px;
 }
 
-/* --- UPDATED: Button Group Container --- */
-/* Added display flex and gap to separate the buttons */
+/* --- BUTTON GROUP CONTAINER (Alignment/Distribution) --- */
 .toolbar-button-group {
     display: flex;
     align-items: center;
-    gap: 6px; /* Spacing between buttons */
+    gap: 6px;      /* Space between buttons */
+    flex-shrink: 0; /* CRITICAL: Prevents group from collapsing */
 }
 
-/* --- UPDATED: Individual Buttons --- */
+/* --- INDIVIDUAL TOOLBAR BUTTONS --- */
 .toolbar-button-group button {
-    padding: 6px;
-    font-size: 12px;
+    /* RESET: Removes default padding to fix off-center icons */
+    padding: 0; 
+    margin: 0;
+    
+    /* SIZING: Fixed size to prevent disappearing */
     width: 34px;
     height: 34px;
-    margin: 0;
+    min-width: 34px; /* Force minimum width */
+    min-height: 34px;
+    
+    /* CENTERING: Flexbox centering for the icon */
     display: flex;
     align-items: center;
     justify-content: center;
     
-    /* Standalone button styling */
-    background-color: var(--bg-tertiary); /* Standard background */
+    /* STYLING */
+    background-color: var(--bg-tertiary);
     color: var(--text-primary);
-    border: 1px solid var(--border-color); /* Full border */
-    border-radius: 4px; /* Rounded corners on all sides */
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
     
     box-shadow: none;
     cursor: pointer;
     transition: all 0.15s ease-in-out;
+    overflow: hidden;
 }
 
-/* Hover effects */
+/* Button Hover State */
 .toolbar-button-group button:hover {
     opacity: 1;
     border-color: var(--accent-primary);
-    background-color: var(--bg-primary); /* Slightly different bg on hover */
+    background-color: var(--bg-primary);
     transform: translateY(-1px);
+    z-index: 2;
 }
 
-/* Active/Pressed state */
+/* Button Active/Pressed State */
 .toolbar-button-group button:active {
     transform: translateY(0);
     background-color: var(--border-color);
 }
 
-/* Icon Sizing */
+/* --- ICONS INSIDE BUTTONS --- */
 .toolbar-button-group button svg {
-    width: 18px;
-    height: 18px;
+    /* DISPLAY: Block removes invisible text line-height gaps */
+    display: block;
+    
+    /* SIZING: Explicit size */
+    width: 20px;
+    height: 20px;
+    min-width: 20px; /* Prevent icon crushing */
+    
+    /* COLOR */
     fill: currentColor;
     pointer-events: none;
 }
 
-/* --- General Text & Spacers --- */
+/* --- GENERAL UTILS --- */
 .toolbar-info-text {
     font-size: 14px;
     font-weight: 500;
     color: var(--text-secondary);
+    white-space: nowrap;
 }
 
 .toolbar-placeholder {
@@ -142,11 +172,13 @@
 
 .toolbar-spacer {
     flex-grow: 1;
+    min-width: 20px; /* Ensures spacer doesn't disappear completely */
 }
 
-/* --- Styles for language switcher --- */
+/* --- LANGUAGE SWITCHER (Text Buttons) --- */
 .language-switcher {
     display: flex;
+    flex-shrink: 0;
 }
 
 .toolbar-group .language-switcher button {
@@ -193,11 +225,11 @@
   cursor: default;
 }
 
-/* --- Styles for theme toggle button --- */
+/* --- THEME TOGGLE BUTTON --- */
 .toolbar-group .theme-toggle-button {
     width: 34px;
     height: 34px;
-    padding: 6px;
+    padding: 0; /* Reset padding to match other icon buttons */
     margin: 0;
     background-color: var(--bg-tertiary);
     color: var(--text-primary);
@@ -209,6 +241,7 @@
     box-shadow: none;
     cursor: pointer;
     transition: all 0.2s ease;
+    flex-shrink: 0;
 }
 
 .toolbar-group .theme-toggle-button:hover {
@@ -217,7 +250,8 @@
 }
 
 .toolbar-group .theme-toggle-button svg {
+    display: block;
     width: 18px;
     height: 18px;
-    color: var(--text-primary);
+    color: currentColor;
 }
