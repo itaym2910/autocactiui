@@ -56,11 +56,11 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
   useEffect(() => { edgesRef.current = edges; }, [edges]);
   useEffect(() => { currentNeighborsRef.current = currentNeighbors; }, [currentNeighbors]);
 
-
+  // Destructure base update function as 'baseHandleUpdateNodeData'
   const {
     createNodeObject,
     handleDeleteElements: baseHandleDeleteElements,
-    handleUpdateNodeData,
+    handleUpdateNodeData: baseHandleUpdateNodeData, 
     handleAddGroup,
     handleAddTextNode,
   } = useNodeManagement(theme, setState);
@@ -74,6 +74,27 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
     sendToBack,
     selectAllByType,
   } = useTooling(selectedElements, setState);
+
+  // --- WRAPPER FIX: Updates both Map State AND Selected Elements State ---
+  const handleUpdateNodeData = useCallback((id, newData, saveToHistory = true) => {
+    // 1. Update the main map state (Nodes/History)
+    baseHandleUpdateNodeData(id, newData, saveToHistory);
+
+    // 2. Update the local selection state so the Sidebar updates immediately
+    setSelectedElements((prevSelected) => 
+      prevSelected.map((node) => {
+        if (node.id === id) {
+          // Create a new object for the selected node with merged data
+          return {
+             ...node,
+             data: { ...node.data, ...newData }
+          };
+        }
+        return node;
+      })
+    );
+  }, [baseHandleUpdateNodeData]);
+  // ---------------------------------------------------------------------
 
   useEffect(() => {
     setState(prev => ({
@@ -213,7 +234,7 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
     }
   }, [selectedElements, setState, t, onShowNeighborPopup]);
 
-  // --- 3. CONFIRM NEIGHBOR (MODIFIED) ---
+  // --- 3. CONFIRM NEIGHBOR ---
   const confirmNeighbor = useCallback(async (neighborGroup, sourceNodeId, setLoading, setError, isBatchOperation = false) => {
     setLoading(true);
     setError('');
@@ -276,24 +297,17 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
             const sourceNode = nodesRef.current.find(n => n.id === sourceNodeId);
             const position = { x: sourceNode.position.x + (Math.random() * 300 - 150), y: sourceNode.position.y + 200 };
             
-            // --- MODIFIED SECTION START ---
-            // We now handle cases where API works but returns empty type, OR where API fails completely.
             try {
                 const deviceResponse = await api.getDeviceInfo(neighborIp);
                 const deviceData = deviceResponse.data;
-
-                // Safety Check: If type is null/undefined/empty string, force 'Unknown'
                 if (!deviceData.type) {
                     deviceData.type = 'Unknown';
                 }
-
                 confirmedNode = createNodeObject(deviceData, position);
             } catch (infoError) {
-                // Network error or 404 - Fallback to Unknown type
                 const fallbackDeviceData = { ip: neighborIp, hostname: hostname, type: 'Unknown' };
                 confirmedNode = createNodeObject(fallbackDeviceData, position, 'Unknown');
             }
-            // --- MODIFIED SECTION END ---
         }
 
         let allNeighborsOfNewNode = [];
@@ -423,6 +437,8 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
   return {
     nodes, setNodes: (newNodes) => setState(prev => ({...prev, nodes: typeof newNodes === 'function' ? newNodes(prev.nodes) : newNodes}), true),
     edges, setEdges: (newEdges) => setState(prev => ({...prev, edges: typeof newEdges === 'function' ? newEdges(prev.edges) : newEdges}), true),
-    selectedElements, snapLines, onNodesChange, onNodeClick, onPaneClick, onSelectionChange, handleDeleteElements, handleUpdateNodeData, handleAddGroup, handleAddTextNode, createNodeObject, resetMap, undo, redo, alignElements, distributeElements, bringForward, sendBackward, bringToFront, sendToBack, selectAllByType: selectAllByTypeHandler, currentNeighbors, confirmNeighbor, confirmPreviewNode, setLoading: setIsLoading, setError: setError, handleFullScan, setState,
+    selectedElements, snapLines, onNodesChange, onNodeClick, onPaneClick, onSelectionChange, handleDeleteElements, 
+    handleUpdateNodeData, // Now returning the WRAPPED version
+    handleAddGroup, handleAddTextNode, createNodeObject, resetMap, undo, redo, alignElements, distributeElements, bringForward, sendBackward, bringToFront, sendToBack, selectAllByType: selectAllByTypeHandler, currentNeighbors, confirmNeighbor, confirmPreviewNode, setLoading: setIsLoading, setError: setError, handleFullScan, setState,
   };
 };
