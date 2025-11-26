@@ -77,6 +77,53 @@ textarea,
   -ms-user-select: auto;
 }
 
+/* Add this to frontend/src/App.css inside the Group Node section */
+
+.group-rotator {
+    /* Visual styling for the rotation handle */
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    border-radius: 50%;
+    
+    /* Make it float above the node */
+    box-shadow: 0 2px 5px var(--shadow-color);
+    z-index: 100; 
+    
+    /* Center the icon */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    /* Interaction */
+    transition: all 0.2s ease;
+    /* Sizing is handled inline in JS (width/height usually) 
+       or you can enforce it here: */
+    width: 24px;
+    height: 24px;
+}
+
+.group-rotator:hover {
+    color: var(--accent-primary);
+    border-color: var(--accent-primary);
+    transform: scale(1.1); /* Slight pop effect */
+    cursor: grab;
+}
+
+.group-rotator:active {
+    cursor: grabbing;
+}
+
+/* Ensure the node allows the handle to float outside its box */
+.group-node {
+    overflow: visible !important;
+}
+
+/* Optional: Ensure the node itself allows things to float outside */
+.group-node {
+    overflow: visible !important; 
+}
+
 
 /* --- MAIN LAYOUT --- */
 .app-container {
