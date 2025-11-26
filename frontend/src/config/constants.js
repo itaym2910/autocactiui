@@ -10,10 +10,6 @@ import unknownIcon from '../assets/icons/firewall.png';
 import encryptorBlackIcon from '../assets/icons/encryptor-black.png';
 import encryptorWhiteIcon from '../assets/icons/encryptor-white.png';
 
-// Example: Import Server icons (Make sure you have these files, or use placeholders)
-import serverBlackIcon from '../assets/icons/router-black.png'; // Replace with real server icon
-import serverWhiteIcon from '../assets/icons/router-white.png'; // Replace with real server icon
-
 /**
  * Defines the icon assets to be used for each device type, based on the current theme.
  */
