@@ -744,283 +744,166 @@ input[type="range"]::-moz-range-thumb:hover {
 
 /* ... [Keep all your existing CSS above this line] ... */
 
-/* --- DOWNLOAD POPUP (MODAL) --- */
+/* --- Overlay & Container --- */
 .download-popup-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-color: rgba(0, 0, 0, 0.6); /* Dim background */
-  z-index: 2000; /* High z-index to sit on top of everything */
+  background-color: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(5px);
   display: flex;
   align-items: center;
   justify-content: center;
-  backdrop-filter: blur(2px); /* Optional: blurs the background slightly */
+  z-index: 9999;
+  animation: fadeIn 0.2s ease-out;
 }
 
-.download-popup {
-  background-color: var(--bg-primary);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 25px;
+.download-popup-content {
+  background-color: var(--bg-primary, #ffffff);
   width: 90%;
-  max-width: 400px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  max-width: 420px;
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+  border: 1px solid var(--border-color, #e5e5e5);
   display: flex;
   flex-direction: column;
-  text-align: center;
-  animation: popupFadeIn 0.2s ease-out;
+  overflow: hidden;
+  animation: scaleUp 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-@keyframes popupFadeIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+/* --- Header & Typography --- */
+.popup-header {
+  padding: 24px 24px 10px 24px;
 }
 
-.download-popup h3 {
-  margin-top: 0;
-  color: var(--text-primary);
+.popup-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary, #1a1a1a);
 }
 
-.download-popup p {
-  color: var(--text-secondary);
-  margin-bottom: 20px;
+.popup-description {
+  margin-top: 8px;
   font-size: 0.95rem;
+  color: var(--text-secondary, #666);
+  line-height: 1.5;
 }
 
-.download-options-grid {
-  display: flex;
-  gap: 15px;
-  margin-bottom: 20px;
+/* --- Body & Custom Select Styling --- */
+.popup-body {
+  padding: 10px 24px 24px 24px;
 }
 
-.download-option-btn {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 20px 10px;
-  background-color: var(--bg-secondary);
+.custom-select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.popup-select-input {
+  width: 100%;
+  appearance: none; /* Removes default browser arrow */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: var(--bg-secondary, #f5f7fa);
   border: 2px solid transparent;
+  padding: 12px 40px 12px 16px; /* Right padding for arrow space */
+  font-size: 1rem;
   border-radius: 8px;
+  color: var(--text-primary, #333);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.popup-select-input:hover {
+  background-color: #5c5c5c;
+}
+
+.popup-select-input:focus {
+  outline: none;
+  background-color: #646464;
+  border-color: var(--accent-primary, #007bff);
+  box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.15);
+}
+
+/* Create the custom arrow using CSS borders */
+.custom-arrow {
+  position: absolute;
+  top: 50%;
+  right: 16px;
+  transform: translateY(-60%) rotate(45deg);
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--text-secondary, #666);
+  border-bottom: 2px solid var(--text-secondary, #666);
+  pointer-events: none; /* Clicks pass through to the select */
+  transition: transform 0.2s ease;
+}
+
+.popup-select-input:focus + .custom-arrow {
+  border-color: var(--accent-primary, #007bff);
+  transform: translateY(-30%) rotate(225deg); /* Flips arrow when open */
+}
+
+/* --- Footer & Buttons --- */
+.popup-footer {
+  padding: 16px 24px;
+  background-color: var(--bg-secondary, #5f5f5f);
+  border-top: 1px solid var(--border-color, #6d6d6d);
+  display: flex;
+  justify-content: flex-end; /* Aligns buttons to right */
+  gap: 12px;
+}
+
+.btn-cancel {
+  background: transparent;
+  border: 1px solid var(--border-color, #d1d5db);
+  padding: 10px 20px;
+  border-radius: 8px;
+  color: var(--text-secondary, #4b5563);
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.download-option-btn span {
-  font-weight: 600;
-  color: var(--text-primary);
+.btn-cancel:hover {
+  background-color: #f3f4f6;
+  color: #111;
+  border-color: #9ca3af;
 }
 
-.download-option-btn:hover {
-  background-color: var(--bg-tertiary);
-  border-color: var(--accent-primary);
-  transform: translateY(-2px);
-}
-
-.download-popup .cancel-btn {
-  margin-top: 0;
-  background-color: transparent;
-  color: var(--text-secondary);
-  border: 1px solid var(--border-color);
-}
-
-.download-popup .cancel-btn:hover {
-  background-color: var(--bg-tertiary);
-  color: var(--text-primary);
-}
-
-/* Dark mode specific adjustments if needed */
-[data-theme="dark"] .download-popup-overlay {
-  background-color: rgba(0, 0, 0, 0.8);
-}
-
-/* --- Sidebar Multi-Select Toolbar Styling --- */
-
-/* Wrapper for the toolbar */
-.multi-select-toolbar {
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-/* Headings inside the toolbar */
-.multi-select-toolbar h3,
-.multi-select-toolbar h4 {
-  margin: 10px 0 5px 0;
-  font-size: 0.9rem;
-  color: #666;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-/* Grid for the alignment buttons (3 per row) */
-.button-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-
-/* Grid for full width buttons (layering) */
-.full-width-grid {
-  grid-template-columns: 1fr 1fr; /* 2 per row for layering */
-}
-
-/* Distribute buttons */
-.distribute {
-  grid-template-columns: 1fr 1fr;
-}
-
-/* Style the buttons themselves */
-.multi-select-toolbar button {
-  padding: 8px;
-  border: 1px solid #444444;
-  background-color: #3d3d3d;
-  border-radius: 4px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-  min-height: 40px;
-}
-
-.multi-select-toolbar button:hover {
-  background-color: #cac9c9;
-  border-color: #adb5bd;
-}
-
-/* IMPORTANT: Fix the SVG Icon sizes */
-.multi-select-toolbar button svg {
-  width: 20px;
-  height: 20px;
-  fill: #fafafa; /* Icon color */
-}
-
-/* Delete button specific style */
-.multi-select-toolbar button.danger {
-  background-color: #4b4e54;
-  border-color: #303030;
-  color: #ffffff;
-  font-weight: 500;
-  margin-top: 15px;
-  width: 100%;
-}
-
-.multi-select-toolbar button.danger:hover {
-  background-color: #858585;
-}
-
-/* Popup Overlay - Dims the background */
-.download-popup-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  animation: fadeIn 0.2s ease-out;
-}
-
-/* The Popup Box */
-.download-popup-content {
-  background-color: var(--bg-primary, #ffffff);
-  width: 400px;
-  padding: 24px;
-  border-radius: 12px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-  border: 1px solid var(--border-color, #e0e0e0);
-  display: flex;
-  flex-direction: column;
-}
-
-/* Typography */
-.popup-title {
-  margin: 0 0 8px 0;
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: var(--text-primary, #333);
-}
-
-.popup-description {
-  margin: 0 0 20px 0;
-  font-size: 0.9rem;
-  color: var(--text-secondary, #666);
-  line-height: 1.4;
-}
-
-/* The Select Input Wrapper */
-.popup-field-group {
-  margin-bottom: 24px;
-}
-
-/* The Select Dropdown */
-.popup-select-input {
-  width: 100%;
-  padding: 10px 12px;
-  font-size: 14px;
-  border: 1px solid var(--border-color, #ccc);
-  border-radius: 6px;
-  background-color: var(--bg-secondary, #f9f9f9);
-  color: var(--text-primary, #333);
-  outline: none;
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-
-.popup-select-input:focus {
-  border-color: var(--accent-primary, #007bff);
-  background-color: var(--bg-primary, #fff);
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
-}
-
-/* Button Container */
-.popup-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-}
-
-/* Button Base Styles (Assuming you have .primary and .secondary, but refining here) */
-.confirm-btn {
+.btn-confirm {
   background-color: var(--accent-primary, #007bff);
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.confirm-btn:hover {
-  filter: brightness(110%);
-}
-
-.confirm-btn:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
-  filter: none;
-}
-
-.cancel-btn {
-  background-color: transparent;
-  color: var(--text-secondary, #666);
   border: 1px solid transparent;
-  padding: 8px 16px;
-  border-radius: 6px;
+  padding: 10px 24px;
+  border-radius: 8px;
+  color: white;
+  font-weight: 600;
   cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0, 123, 255, 0.2);
+  transition: all 0.2s;
 }
 
-.cancel-btn:hover {
-  background-color: rgba(0,0,0,0.05);
-  color: var(--text-primary, #333);
+.btn-confirm:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 8px rgba(0, 123, 255, 0.25);
+  filter: brightness(1.1);
 }
+
+.btn-confirm:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-confirm:disabled {
+  background-color: #5c5c5c;
+  color: #9ca3af;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Animations */
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes scaleUp { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }

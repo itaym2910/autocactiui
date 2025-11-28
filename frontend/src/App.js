@@ -398,43 +398,50 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
               </ReactFlowProvider>
             )}
 
+            {/* ... inside the return statement ... */}
+
             {showUploadPopup && (
               <div className="download-popup-overlay">
                 <div className="download-popup-content">
-                  <h3 className="popup-title">
-                    {t('modals.upload.title') || "Select Destination Group"}
-                  </h3>
 
-                  <p className="popup-description">
-                    {t('modals.upload.description')}
-                  </p>
-
-                  <div className="popup-field-group">
-                    <select
-                      className="popup-select-input"
-                      value={selectedCactiGroupId}
-                      onChange={(e) => setSelectedCactiGroupId(e.target.value)}
-                    >
-                      {cactiGroups.length === 0 && (
-                        <option disabled>{t('modals.upload.loading')}</option>
-                      )}
-                      {cactiGroups.map((group) => (
-                        <option key={group.id} value={group.id}>
-                          {group.name}
-                        </option>
-                      ))}
-                    </select>
+                  <div className="popup-header">
+                    <h3 className="popup-title">
+                      {t('modals.upload.title') || "Select Destination Group"}
+                    </h3>
+                    <p className="popup-description">
+                      {t('modals.upload.description')}
+                    </p>
                   </div>
 
-                  <div className="popup-actions">
+                  <div className="popup-body">
+                    <div className="custom-select-wrapper">
+                      <select
+                        className="popup-select-input"
+                        value={selectedCactiGroupId}
+                        onChange={(e) => setSelectedCactiGroupId(e.target.value)}
+                      >
+                        {cactiGroups.length === 0 && (
+                          <option disabled>{t('modals.upload.loading')}</option>
+                        )}
+                        {cactiGroups.map((group) => (
+                          <option key={group.id} value={group.id}>
+                            {group.name}
+                          </option>
+                        ))}
+                      </select>
+                      <span className="custom-arrow"></span>
+                    </div>
+                  </div>
+
+                  <div className="popup-footer">
                     <button
-                      className="secondary cancel-btn"
+                      className="btn-cancel"
                       onClick={() => setShowUploadPopup(false)}
                     >
                       {t('common.cancel')}
                     </button>
                     <button
-                      className="primary confirm-btn"
+                      className="btn-confirm"
                       onClick={handleConfirmUpload}
                       disabled={!selectedCactiGroupId}
                     >
