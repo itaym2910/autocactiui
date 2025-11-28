@@ -53,11 +53,16 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
   // --- SERVER SELECTION & POPUP STATE ---
   const [cactiGroups, setCactiGroups] = useState([]); 
   const [selectedCactiGroupId, setSelectedCactiGroupId] = useState(''); 
-  const [showUploadPopup, setShowUploadPopup] = useState(false); // <--- NEW STATE
+  const [showUploadPopup, setShowUploadPopup] = useState(false);
 
   const { t } = useTranslation();
   const reactFlowWrapper = useRef(null);
   const reactFlowInstance = useRef(null);
+
+  // --- Popup Handlers ---
+  const handleShowNeighborPopup = useCallback((neighbors, sourceNode) => {
+    setNeighborPopup({ isOpen: true, neighbors, sourceNode });
+  }, []);
 
   // --- Custom Hooks ---
   const { theme, toggleTheme } = useThemeManager();
@@ -87,6 +92,8 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
     }
   }, [token]);
 
+  // --- MAP INTERACTION HOOK ---
+  // FIXED: Restored 'handleShowNeighborPopup' so scanning works again
   const {
     nodes, setNodes, edges, setEdges, selectedElements, snapLines, currentNeighbors,
     onNodesChange, onNodeClick, onPaneClick, onSelectionChange, handleDeleteElements,
@@ -94,9 +101,9 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
     resetMap, undo, redo, alignElements, distributeElements, bringForward, sendBackward,
     bringToFront, sendToBack, selectAllByType, confirmNeighbor, handleFullScan,
     setLoading: setMapHookLoading, setError: setMapHookError, setState: setMapState,
-  } = useMapInteraction(theme, () => {});
+  } = useMapInteraction(theme, handleShowNeighborPopup); 
 
-  // --- Memos (NodeTypes, Icons, etc) ---
+  // --- Memos ---
   const nodeTypes = useMemo(() => ({ custom: CustomNode, group: GroupNode, text: TextNode }), []);
   const availableIcons = useMemo(() => Object.keys(ICONS_BY_THEME), []);
   const selectedCustomNode = useMemo(() => 
@@ -107,7 +114,7 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
       if (!selectedCustomNode) return [];
       const existingConnections = new Set(
           edges.filter(e => e.source === selectedCustomNode.id || e.target === selectedCustomNode.id)
-               .map(e => e.target) // simplified for brevity
+               .map(e => e.target)
       );
       return currentNeighbors.filter(n => !nodes.some(node => node.id === n.ip));
   }, [selectedCustomNode, currentNeighbors, nodes, edges]);
@@ -131,7 +138,7 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
     if (!isNodeStillSelected) setContextMenu(null);
   }, [selectedElements, contextMenu]);
 
-  // --- Map Handlers (Start, Neighbors, etc.) ---
+  // --- Map Handlers ---
   const handleStart = async (ip, initialIconName) => {
     if (!ip) { setAppError(t('app.errorStartIp')); return; }
     setIsLoading(true);
@@ -174,7 +181,7 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
   // NEW: UPLOAD LOGIC WITH POPUP
   // ==========================================
 
-  // 1. Triggered by Sidebar "Upload" Button
+  // 1. Opens the Popup (Triggered by Sidebar Button)
   const handleOpenUploadPopup = () => {
     if (!reactFlowWrapper.current || nodes.length === 0) { 
         setAppError(t('app.errorEmptyMap')); 
@@ -187,9 +194,9 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
     setShowUploadPopup(true);
   };
 
-  // 2. Triggered by "Confirm" in Popup
+  // 2. Performs Upload (Triggered by Popup Confirm)
   const handleConfirmUpload = async () => {
-    setShowUploadPopup(false); // Close popup
+    setShowUploadPopup(false);
     
     if (!selectedCactiGroupId) {
         setAppError(t('app.errorSelectCacti') || "No server group selected.");
@@ -205,7 +212,7 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
         nodes,
         edges,
         mapName,
-        cactiGroupId: selectedCactiGroupId, // Use the selected ID
+        cactiGroupId: selectedCactiGroupId,
         theme,
         setNodes,
         setEdges
@@ -219,32 +226,76 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
     }
   };
 
-  // --- Download Handlers (Config/PNG) ---
+  // --- Download Handlers ---
   const handleDownloadConfig = useCallback(async () => {
-    // ... (Keep existing logic)
     const dataStr = JSON.stringify({ nodes, edges, mapName }, null, 2);
-    mapImportExport.downloadMapConfig(nodes, edges, mapName); // Simplified for brevity
+    const fileName = `${mapName || 'network-map'}.json`;
+
+    if ('showSaveFilePicker' in window) {
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: fileName,
+          types: [{ description: 'JSON Config', accept: { 'application/json': ['.json'] } }],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(dataStr);
+        await writable.close();
+        return;
+      } catch (err) { if (err.name === 'AbortError') return; }
+    }
+    mapImportExport.downloadMapConfig(nodes, edges, mapName);
   }, [nodes, edges, mapName]);
 
   const handleDownloadPng = useCallback(async () => {
-    // ... (Keep existing logic)
     const mapElement = document.querySelector('.react-flow');
-    if (!mapElement) return;
-    const blob = await htmlToImage.toBlob(mapElement, { backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff' });
-    if(blob) {
-        const link = document.createElement('a');
-        link.download = `${mapName}.png`;
-        link.href = URL.createObjectURL(blob);
-        link.click();
+    if (!mapElement) { setAppError('Map element not found'); return; }
+    setIsLoading(true);
+    const fileName = `${mapName || 'network-map'}.png`;
+    const options = {
+      backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff',
+      pixelRatio: 2,
+      filter: (node) => !['react-flow__controls', 'react-flow__minimap'].some(cls => node.classList && node.classList.contains(cls))
+    };
+    try {
+        const blob = await htmlToImage.toBlob(mapElement, options);
+        if (!blob) throw new Error('Failed to create image blob');
+        if ('showSaveFilePicker' in window) {
+            try {
+                const handle = await window.showSaveFilePicker({
+                    suggestedName: fileName,
+                    types: [{ description: 'PNG Image', accept: { 'image/png': ['.png'] } }],
+                });
+                const writable = await handle.createWritable();
+                await writable.write(blob);
+                await writable.close();
+            } catch (fsErr) { if (fsErr.name !== 'AbortError') throw fsErr; }
+        } else {
+            const link = document.createElement('a');
+            link.download = fileName;
+            link.href = URL.createObjectURL(blob);
+            link.click();
+            URL.revokeObjectURL(link.href);
+        }
+    } catch (err) {
+      if (err.name !== 'AbortError') setAppError(t('app.errorDownloadPng') || 'Failed to generate image');
+    } finally {
+      setIsLoading(false);
     }
-  }, [mapName, theme]);
+  }, [mapName, theme, setIsLoading, setAppError, t]);
 
   const handleImportConfig = useCallback(async (file) => {
-    // ... (Keep existing logic)
-    const { nodes: impNodes, edges: impEdges, mapName: impName } = await mapImportExport.importMapConfig(file);
-    setMapState({ nodes: impNodes, edges: impEdges });
-    setMapName(impName);
-  }, [setMapState]);
+    setIsLoading(true);
+    setAppError('');
+    try {
+      const { nodes: impNodes, edges: impEdges, mapName: impName } = await mapImportExport.importMapConfig(file);
+      setMapState({ nodes: impNodes, edges: impEdges });
+      setMapName(impName);
+    } catch (err) {
+      setAppError(t('app.errorImportMap'));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [setMapState, t]);
 
   // --- Click Handlers ---
   const onNodeClickHandler = useCallback((event, node) => {
@@ -275,9 +326,7 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
       <div className="app-container">
         <Sidebar 
           selectedElements={selectedElements}
-          // Connect the Sidebar button to the Popup opener
-          onUploadMap={handleOpenUploadPopup} 
-          
+          onUploadMap={handleOpenUploadPopup} // Connected to Popup Opener
           onAddGroup={handleAddGroup}
           onAddTextNode={handleAddTextNode}
           onResetMap={resetMap}
@@ -349,9 +398,7 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
               </ReactFlowProvider>
             )}
             
-            {/* ========================================== */}
-            {/* NEW: GROUP SELECTION POPUP                 */}
-            {/* ========================================== */}
+            {/* NEW: POPUP FOR SERVER SELECTION */}
             {showUploadPopup && (
               <div className="download-popup-overlay">
                 <div className="download-popup" style={{ minWidth: '350px' }}>
@@ -396,7 +443,6 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
               </div>
             )}
 
-            {/* Other Popups */}
             {contextMenu && (
               <ContextMenu
                 node={contextMenu.node}
@@ -474,10 +520,8 @@ function App() {
     try {
       const response = await api.login(username, password);
       const { token: newToken, user } = response.data;
-
       localStorage.setItem('token', newToken);
       setToken(newToken);
-
       if (user) {
         setCurrentUser(user);
         localStorage.setItem('user_info', JSON.stringify(user));

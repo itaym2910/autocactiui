@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 const MapExportControls = ({
   mapName,
   setMapName,
-  onUploadMap, // <--- KEEPING THIS NAME IS CRITICAL
+  onUploadMap,
   isUploading,
   isMapStarted,
 }) => {
@@ -14,7 +14,6 @@ const MapExportControls = ({
     <div>
       <h2>{t('sidebar.controls')}</h2>
       
-      {/* Map Name Input */}
       <div className="control-group">
         <label htmlFor="map-name-input">{t('sidebar.mapName')}</label>
         <input
@@ -27,8 +26,6 @@ const MapExportControls = ({
         />
       </div>
 
-      {/* Upload Button */}
-      {/* Note: Dropdown is removed. It's now in the Popup in App.js */}
       <div className="control-group">
         <button 
             onClick={onUploadMap} 
