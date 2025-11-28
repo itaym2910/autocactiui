@@ -155,6 +155,15 @@
     "404_message": "We couldn't locate the map or resource you're looking for.",
     "403_title": "Access Restricted",
     "403_message": "You don't have the necessary permissions to view this area. Please contact your network administrator."
-  }
+  },
+  
+  "modals": {
+    "upload": {
+      "title": "Select Destination Group",
+      "description": "Select the server group to upload this map to:",
+      "loading": "Loading groups...",
+      "confirm": "Upload"
+    }
+}
 
 }

@@ -20,7 +20,7 @@ import ContextMenu from './components/ContextMenu/ContextMenu';
 import UploadSuccessPopup from './components/common/UploadSuccessPopup';
 import NeighborsPopup from './components/common/NeighborsPopup';
 import AdminPanel from './components/Admin/AdminPanel';
-import NotFound  from './components/errors/NotFound';
+import NotFound from './components/errors/NotFound';
 import Forbidden from './components/errors/Forbidden';
 
 import * as api from './services/apiService';
@@ -42,17 +42,17 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
   const [error, setError] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [mapName, setMapName] = useState('My-Network-Map');
-  
+
   // UI State
   const [contextMenu, setContextMenu] = useState(null);
   const [uploadSuccessData, setUploadSuccessData] = useState(null);
   const [neighborPopup, setNeighborPopup] = useState({ isOpen: false, neighbors: [], sourceNode: null });
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [mapInteractionLoading, setMapInteractionLoading] = useState(false);
-  
+
   // --- SERVER SELECTION & POPUP STATE ---
-  const [cactiGroups, setCactiGroups] = useState([]); 
-  const [selectedCactiGroupId, setSelectedCactiGroupId] = useState(''); 
+  const [cactiGroups, setCactiGroups] = useState([]);
+  const [selectedCactiGroupId, setSelectedCactiGroupId] = useState('');
   const [showUploadPopup, setShowUploadPopup] = useState(false);
 
   const { t } = useTranslation();
@@ -67,7 +67,7 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
   // --- Custom Hooks ---
   const { theme, toggleTheme } = useThemeManager();
   useLocalizationManager();
-  
+
   // --- FETCH GROUPS ON LOAD ---
   useEffect(() => {
     const fetchGroups = async () => {
@@ -75,11 +75,11 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
         const response = await api.getCactiGroups();
         let loadedGroups = [];
         if (response.data && response.data.data) {
-           loadedGroups = response.data.data;
+          loadedGroups = response.data.data;
         } else if (Array.isArray(response.data)) {
-           loadedGroups = response.data;
+          loadedGroups = response.data;
         } else {
-           loadedGroups = response.data || [];
+          loadedGroups = response.data || [];
         }
         setCactiGroups(loadedGroups);
       } catch (err) {
@@ -101,34 +101,34 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
     resetMap, undo, redo, alignElements, distributeElements, bringForward, sendBackward,
     bringToFront, sendToBack, selectAllByType, confirmNeighbor, handleFullScan,
     setLoading: setMapHookLoading, setError: setMapHookError, setState: setMapState,
-  } = useMapInteraction(theme, handleShowNeighborPopup); 
+  } = useMapInteraction(theme, handleShowNeighborPopup);
 
   // --- Memos ---
   const nodeTypes = useMemo(() => ({ custom: CustomNode, group: GroupNode, text: TextNode }), []);
   const availableIcons = useMemo(() => Object.keys(ICONS_BY_THEME), []);
-  const selectedCustomNode = useMemo(() => 
+  const selectedCustomNode = useMemo(() =>
     selectedElements.length === 1 && selectedElements[0].type === 'custom' ? selectedElements[0] : null,
     [selectedElements]
   );
   const availableNeighbors = useMemo(() => {
-      if (!selectedCustomNode) return [];
-      const existingConnections = new Set(
-          edges.filter(e => e.source === selectedCustomNode.id || e.target === selectedCustomNode.id)
-               .map(e => e.target)
-      );
-      return currentNeighbors.filter(n => !nodes.some(node => node.id === n.ip));
+    if (!selectedCustomNode) return [];
+    const existingConnections = new Set(
+      edges.filter(e => e.source === selectedCustomNode.id || e.target === selectedCustomNode.id)
+        .map(e => e.target)
+    );
+    return currentNeighbors.filter(n => !nodes.some(node => node.id === n.ip));
   }, [selectedCustomNode, currentNeighbors, nodes, edges]);
 
   // --- Helper Callbacks ---
   const setIsLoading = useCallback((value) => {
-      setMapInteractionLoading(value);
-      setMapHookLoading(value);
+    setMapInteractionLoading(value);
+    setMapHookLoading(value);
   }, [setMapHookLoading]);
 
   const setAppError = useCallback((message) => {
-      setError(message);
-      setMapHookError(message);
-      if (message) setTimeout(() => setError(''), 5000);
+    setError(message);
+    setMapHookError(message);
+    if (message) setTimeout(() => setError(''), 5000);
   }, [setMapHookError]);
 
   // --- Effects ---
@@ -147,7 +147,7 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
       const response = await api.getInitialDevice(ip);
       const newNode = createNodeObject(response.data, { x: 400, y: 150 }, initialIconName);
       setMapState({ nodes: [newNode], edges: [] });
-      onNodeClick(null, newNode, setIsLoading, setAppError); 
+      onNodeClick(null, newNode, setIsLoading, setAppError);
     } catch (err) {
       setAppError(t('app.errorInitialDevice'));
       resetMap();
@@ -183,13 +183,13 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
 
   // 1. Opens the Popup (Triggered by Sidebar Button)
   const handleOpenUploadPopup = () => {
-    if (!reactFlowWrapper.current || nodes.length === 0) { 
-        setAppError(t('app.errorEmptyMap')); 
-        return; 
+    if (!reactFlowWrapper.current || nodes.length === 0) {
+      setAppError(t('app.errorEmptyMap'));
+      return;
     }
     // Auto-select first group if none selected
     if (!selectedCactiGroupId && cactiGroups.length > 0) {
-        setSelectedCactiGroupId(cactiGroups[0].id);
+      setSelectedCactiGroupId(cactiGroups[0].id);
     }
     setShowUploadPopup(true);
   };
@@ -197,10 +197,10 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
   // 2. Performs Upload (Triggered by Popup Confirm)
   const handleConfirmUpload = async () => {
     setShowUploadPopup(false);
-    
+
     if (!selectedCactiGroupId) {
-        setAppError(t('app.errorSelectCacti') || "No server group selected.");
-        return;
+      setAppError(t('app.errorSelectCacti') || "No server group selected.");
+      return;
     }
 
     setIsUploading(true);
@@ -257,25 +257,25 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
       filter: (node) => !['react-flow__controls', 'react-flow__minimap'].some(cls => node.classList && node.classList.contains(cls))
     };
     try {
-        const blob = await htmlToImage.toBlob(mapElement, options);
-        if (!blob) throw new Error('Failed to create image blob');
-        if ('showSaveFilePicker' in window) {
-            try {
-                const handle = await window.showSaveFilePicker({
-                    suggestedName: fileName,
-                    types: [{ description: 'PNG Image', accept: { 'image/png': ['.png'] } }],
-                });
-                const writable = await handle.createWritable();
-                await writable.write(blob);
-                await writable.close();
-            } catch (fsErr) { if (fsErr.name !== 'AbortError') throw fsErr; }
-        } else {
-            const link = document.createElement('a');
-            link.download = fileName;
-            link.href = URL.createObjectURL(blob);
-            link.click();
-            URL.revokeObjectURL(link.href);
-        }
+      const blob = await htmlToImage.toBlob(mapElement, options);
+      if (!blob) throw new Error('Failed to create image blob');
+      if ('showSaveFilePicker' in window) {
+        try {
+          const handle = await window.showSaveFilePicker({
+            suggestedName: fileName,
+            types: [{ description: 'PNG Image', accept: { 'image/png': ['.png'] } }],
+          });
+          const writable = await handle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+        } catch (fsErr) { if (fsErr.name !== 'AbortError') throw fsErr; }
+      } else {
+        const link = document.createElement('a');
+        link.download = fileName;
+        link.href = URL.createObjectURL(blob);
+        link.click();
+        URL.revokeObjectURL(link.href);
+      }
     } catch (err) {
       if (err.name !== 'AbortError') setAppError(t('app.errorDownloadPng') || 'Failed to generate image');
     } finally {
@@ -299,8 +299,8 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
 
   // --- Click Handlers ---
   const onNodeClickHandler = useCallback((event, node) => {
-      setContextMenu(null);
-      onNodeClick(event, node, setIsLoading, setAppError); 
+    setContextMenu(null);
+    onNodeClick(event, node, setIsLoading, setAppError);
   }, [onNodeClick, setIsLoading, setAppError]);
 
   const onPaneClickHandler = useCallback(() => {
@@ -324,7 +324,7 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
   return (
     <NodeContext.Provider value={{ onUpdateNodeData: handleUpdateNodeData }}>
       <div className="app-container">
-        <Sidebar 
+        <Sidebar
           selectedElements={selectedElements}
           onUploadMap={handleOpenUploadPopup} // Connected to Popup Opener
           onAddGroup={handleAddGroup}
@@ -336,7 +336,7 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
           setMapName={setMapName}
           isMapStarted={nodes.length > 0}
           isUploading={isUploading}
-          
+
           selectAllByType={selectAllByType}
           onDeleteElements={handleDeleteElements}
           alignElements={alignElements}
@@ -347,7 +347,7 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
           sendToBack={sendToBack}
           onDownloadConfig={handleDownloadConfig}
           onDownloadPng={handleDownloadPng}
-          
+
           neighbors={availableNeighbors}
           onAddNeighbor={(neighbor) => {
             if (selectedCustomNode) {
@@ -372,8 +372,8 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
           <div className='map-container'>
             {nodes.length === 0 ? (
               <div className="startup-wrapper">
-                <StartupScreen 
-                  onStart={handleStart} 
+                <StartupScreen
+                  onStart={handleStart}
                   onImportConfig={handleImportConfig}
                   isLoading={mapInteractionLoading}
                   availableIcons={availableIcons}
@@ -381,62 +381,64 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
               </div>
             ) : (
               <ReactFlowProvider>
-                <Map 
-                  nodes={nodes} 
-                  edges={edges} 
+                <Map
+                  nodes={nodes}
+                  edges={edges}
                   snapLines={snapLines}
-                  onNodeClick={onNodeClickHandler} 
+                  onNodeClick={onNodeClickHandler}
                   onNodesChange={onNodesChange}
                   onPaneClick={onPaneClickHandler}
                   onSelectionChange={onSelectionChange}
                   onNodeContextMenu={handleNodeContextMenu}
                   onPaneContextMenu={onPaneContextMenu}
-                  nodeTypes={nodeTypes} 
+                  nodeTypes={nodeTypes}
                   theme={theme}
                   setReactFlowInstance={(instance) => (reactFlowInstance.current = instance)}
                 />
               </ReactFlowProvider>
             )}
-            
-            {/* NEW: POPUP FOR SERVER SELECTION */}
+
             {showUploadPopup && (
               <div className="download-popup-overlay">
-                <div className="download-popup" style={{ minWidth: '350px' }}>
-                  <h3>{t('sidebar.selectServer') || "Select Destination Group"}</h3>
-                  <p style={{fontSize: '0.9em', color: 'var(--text-secondary)', marginBottom: '15px'}}>
-                    Select the server group to upload this map to:
+                <div className="download-popup-content">
+                  <h3 className="popup-title">
+                    {t('modals.upload.title') || "Select Destination Group"}
+                  </h3>
+
+                  <p className="popup-description">
+                    {t('modals.upload.description')}
                   </p>
-                  
-                  <div className="control-group" style={{ margin: '20px 0' }}>
-                      <select
-                        className="icon-selector"
-                        style={{ width: '100%', padding: '10px' }}
-                        value={selectedCactiGroupId}
-                        onChange={(e) => setSelectedCactiGroupId(e.target.value)}
-                      >
-                        {cactiGroups.length === 0 && <option disabled>Loading...</option>}
-                        {cactiGroups.map((group) => (
-                          <option key={group.id} value={group.id}>
-                            {group.name}
-                          </option>
-                        ))}
-                      </select>
+
+                  <div className="popup-field-group">
+                    <select
+                      className="popup-select-input"
+                      value={selectedCactiGroupId}
+                      onChange={(e) => setSelectedCactiGroupId(e.target.value)}
+                    >
+                      {cactiGroups.length === 0 && (
+                        <option disabled>{t('modals.upload.loading')}</option>
+                      )}
+                      {cactiGroups.map((group) => (
+                        <option key={group.id} value={group.id}>
+                          {group.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                    <button 
-                      className="secondary cancel-btn" 
+                  <div className="popup-actions">
+                    <button
+                      className="secondary cancel-btn"
                       onClick={() => setShowUploadPopup(false)}
                     >
                       {t('common.cancel')}
                     </button>
-                    <button 
-                      className="primary" 
+                    <button
+                      className="primary confirm-btn"
                       onClick={handleConfirmUpload}
                       disabled={!selectedCactiGroupId}
-                      style={{ backgroundColor: 'var(--accent-primary)', border: 'none' }}
                     >
-                      {t('sidebar.upload')}
+                      {t('modals.upload.confirm')}
                     </button>
                   </div>
                 </div>
@@ -456,21 +458,21 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
                 sendBackward={sendBackward}
               />
             )}
-            
+
             {error && <p className="error-message">{error}</p>}
-            
+
             {(isUploading || mapInteractionLoading) && (
               <p className="loading-message">
                 {isUploading ? t('app.processingMap') : t('app.loading')}
               </p>
             )}
-            
-            <UploadSuccessPopup 
+
+            <UploadSuccessPopup
               key={uploadSuccessData ? JSON.stringify(uploadSuccessData.tasks) : 'popup-closed'}
-              data={uploadSuccessData} 
-              onClose={() => setUploadSuccessData(null)} 
+              data={uploadSuccessData}
+              onClose={() => setUploadSuccessData(null)}
             />
-            
+
             <NeighborsPopup
               isOpen={neighborPopup.isOpen}
               neighbors={neighborPopup.neighbors}
@@ -482,8 +484,8 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
               onFullScan={() => handleFullScan(setIsLoading, setAppError)}
             />
 
-            <AdminPanel 
-              isOpen={showAdminPanel} 
+            <AdminPanel
+              isOpen={showAdminPanel}
               onClose={() => setShowAdminPanel(false)}
               currentUser={currentUser}
             />
