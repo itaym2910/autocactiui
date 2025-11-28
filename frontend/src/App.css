@@ -838,6 +838,79 @@ input[type="range"]::-moz-range-thumb:hover {
   background-color: rgba(0, 0, 0, 0.8);
 }
 
-/* ... [Keep existing CSS for neighbors list etc below] ... */
-/* --- NEIGHBORS LIST --- */
-/* ... */
+/* --- Sidebar Multi-Select Toolbar Styling --- */
+
+/* Wrapper for the toolbar */
+.multi-select-toolbar {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Headings inside the toolbar */
+.multi-select-toolbar h3,
+.multi-select-toolbar h4 {
+  margin: 10px 0 5px 0;
+  font-size: 0.9rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Grid for the alignment buttons (3 per row) */
+.button-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+/* Grid for full width buttons (layering) */
+.full-width-grid {
+  grid-template-columns: 1fr 1fr; /* 2 per row for layering */
+}
+
+/* Distribute buttons */
+.distribute {
+  grid-template-columns: 1fr 1fr;
+}
+
+/* Style the buttons themselves */
+.multi-select-toolbar button {
+  padding: 8px;
+  border: 1px solid #444444;
+  background-color: #3d3d3d;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  min-height: 40px;
+}
+
+.multi-select-toolbar button:hover {
+  background-color: #cac9c9;
+  border-color: #adb5bd;
+}
+
+/* IMPORTANT: Fix the SVG Icon sizes */
+.multi-select-toolbar button svg {
+  width: 20px;
+  height: 20px;
+  fill: #fafafa; /* Icon color */
+}
+
+/* Delete button specific style */
+.multi-select-toolbar button.danger {
+  background-color: #4b4e54;
+  border-color: #303030;
+  color: #ffffff;
+  font-weight: 500;
+  margin-top: 15px;
+  width: 100%;
+}
+
+.multi-select-toolbar button.danger:hover {
+  background-color: #858585;
+}

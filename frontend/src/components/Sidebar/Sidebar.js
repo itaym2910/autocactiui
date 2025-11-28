@@ -1,9 +1,10 @@
+// frontend/src/components/Sidebar/Sidebar.js
 import React, { useContext, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NodeContext } from '../../App';
 import MapExportControls from './MapExportControls';
 import SidebarPlaceholder from './SidebarPlaceholder';
-import MultiSelectToolbar from './MultiSelectToolbar';
+import MultiSelectToolbar from './MultiSelectToolbar'; // <--- IMPORT YOUR FILE HERE
 import DeviceEditor from './DeviceEditor';
 import GroupEditor from './GroupEditor';
 import TextEditor from './TextEditor';
@@ -48,14 +49,33 @@ const Sidebar = ({
   const isAdmin = currentUser && (currentUser.privilege === 'admin' || currentUser.role === 'admin');
   const isViewer = currentUser && (currentUser.privilege === 'viewer' || currentUser.role === 'viewer');
 
+  // Logic to choose which component to render in the bottom section
   const renderContextualContent = () => {
-     if (selectedElements.length > 1) return <MultiSelectToolbar selectedElements={selectedElements} alignElements={alignElements} distributeElements={distributeElements} bringForward={bringForward} sendBackward={sendBackward} bringToFront={bringToFront} sendToBack={sendToBack} onDeleteElements={onDeleteElements} />;
+     // 1. IF MULTIPLE ITEMS ARE SELECTED -> Show the Toolbar you provided
+     if (selectedElements.length > 1) {
+         return (
+            <MultiSelectToolbar 
+                selectedElements={selectedElements}
+                alignElements={alignElements}
+                distributeElements={distributeElements}
+                bringForward={bringForward}
+                sendBackward={sendBackward}
+                bringToFront={bringToFront}
+                sendToBack={sendToBack}
+                onDeleteElements={onDeleteElements}
+            />
+         );
+     }
+
+     // 2. IF ONE ITEM IS SELECTED -> Show the specific Editor
      if (selectedElements.length === 1) {
         const selected = selectedElements[0];
         if(selected.type === 'custom') return <DeviceEditor selectedElement={selected} onDeleteElements={onDeleteElements} neighbors={neighbors} onAddNeighbor={onAddNeighbor} />;
         if(selected.type === 'group') return <GroupEditor selectedElement={selected} onUpdateNodeData={onUpdateNodeData} onDeleteElements={onDeleteElements} />;
         if(selected.type === 'text') return <TextEditor selectedElement={selected} onUpdateNodeData={onUpdateNodeData} onDeleteElements={onDeleteElements} />;
      }
+     
+     // 3. NOTHING SELECTED -> Show Placeholder
      return <SidebarPlaceholder isMapStarted={isMapStarted} />;
   };
 
@@ -133,6 +153,8 @@ const Sidebar = ({
       </div>
 
       <hr />
+      
+      {/* RENDER THE CONTEXTUAL CONTENT HERE */}
       <div className="contextual-section">
         {renderContextualContent()}
       </div>

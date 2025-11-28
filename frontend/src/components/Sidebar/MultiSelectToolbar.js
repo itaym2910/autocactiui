@@ -1,5 +1,4 @@
 // frontend/src/components/Sidebar/MultiSelectToolbar.js
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 // Simple SVG icons for toolbar buttons
