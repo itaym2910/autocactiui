@@ -296,6 +296,9 @@ MOCK_FULL_SCAN_EXTRAS = {
 # --- NEW MOCK Cacti Data Structure ---
 
 # A flat dictionary of all possible Cacti installations for easy lookup by ID.
+# --- MOCK Cacti Data Structure ---
+
+# 1. DEFINE THE SERVERS
 MOCK_CACTI_INSTALLATIONS_DB = {
     1: {
         "id": 1,
@@ -309,21 +312,41 @@ MOCK_CACTI_INSTALLATIONS_DB = {
     },
     3: { 
         "id": 3,
-        "hostname": "221.250.1.2",
-        "ip": "221.250.1.2",
+        "hostname": "21.250.1.2",
+        "ip": "21.250.1.2",
     },
     4: {
         "id": 4,
-        "hostname": "221.252.1.2",
-        "ip": "221.252.1.2",
+        "hostname": "21.252.1.2",
+        "ip": "21.252.1.2",
+    },
+    5: {
+        "id": 5,
+        "hostname": "cacti-branch-ny",
+        "ip": "10.50.1.50",
+    },
+    6: {
+        "id": 6,
+        "hostname": "cacti-branch-tokyo",
+        "ip": "10.60.1.50",
+    },
+    7: {
+        "id": 7,
+        "hostname": "cacti-disaster-recovery",
+        "ip": "172.16.99.5",
+    },
+    8: {
+        "id": 8,
+        "hostname": "zabbix-migration-test",
+        "ip": "192.168.88.88",
     }
 }
 
-# The new grouped structure that the API will return.
+# 2. GROUP THEM TOGETHER
 MOCK_CACTI_GROUPS = [
     {
         "id": 1,
-        "name": "Main-Cacti-Group",
+        "name": "Core-Cacti-Group",
         "installations": [
             MOCK_CACTI_INSTALLATIONS_DB[3],
             MOCK_CACTI_INSTALLATIONS_DB[4]
@@ -331,10 +354,26 @@ MOCK_CACTI_GROUPS = [
     },
     {
         "id": 2,
-        "name": "Legacy-Group",
+        "name": "Site-Cacti-Group",
         "installations": [
             MOCK_CACTI_INSTALLATIONS_DB[1],
             MOCK_CACTI_INSTALLATIONS_DB[2]
+        ]
+    },
+    {
+        "id": 3,
+        "name": "Takash-Cacti-Group",
+        "installations": [
+            MOCK_CACTI_INSTALLATIONS_DB[5], 
+            MOCK_CACTI_INSTALLATIONS_DB[6]  
+        ]
+    },
+    {
+        "id": 4,
+        "name": "Legacy-Cacti-Group",
+        "installations": [
+            MOCK_CACTI_INSTALLATIONS_DB[7], 
+            MOCK_CACTI_INSTALLATIONS_DB[8]  
         ]
     }
 ]
