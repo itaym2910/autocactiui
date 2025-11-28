@@ -3,7 +3,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { applyNodeChanges } from 'react-flow-renderer';
 import { useTranslation } from 'react-i18next';
 import * as api from '../services/apiService';
-import { ICONS_BY_THEME, NODE_WIDTH, NODE_HEIGHT } from '../config/constants';
+import { ICONS_BY_THEME } from '../config/constants';
 import { useHistoryState } from './useHistoryState';
 import { useNodeManagement } from './useNodeManagement';
 import { useTooling } from './useTooling';
@@ -45,9 +45,6 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
   const [snapLines, setSnapLines] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  
-  // --- NEW: State for the Multi-Select Box ---
-  const [selectionBox, setSelectionBox] = useState(null); 
   
   const { t } = useTranslation();
   const dragContext = useRef(null);
@@ -117,95 +114,6 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
           return prev;
       }, true);
   }, [setState]);
-
-  // --- 4. MULTI-SELECTION (MIDDLE MOUSE) LOGIC ---
-  const onSelectionMouseDown = useCallback((e) => {
-    // Button 1 is the Middle Mouse Button (Scroll Wheel click)
-    if (e.button === 1) { 
-        e.preventDefault();
-        e.stopPropagation();
-
-        // Get coordinates relative to the container
-        const containerBounds = e.currentTarget.getBoundingClientRect();
-        const x = e.clientX - containerBounds.left;
-        const y = e.clientY - containerBounds.top;
-
-        setSelectionBox({ startX: x, startY: y, x, y, width: 0, height: 0 });
-    }
-  }, []);
-
-  const onSelectionMouseMove = useCallback((e) => {
-    if (!selectionBox) return;
-    
-    e.preventDefault();
-    const containerBounds = e.currentTarget.getBoundingClientRect();
-    const currentX = e.clientX - containerBounds.left;
-    const currentY = e.clientY - containerBounds.top;
-
-    // Calculate box dimensions based on drag direction
-    const newX = Math.min(selectionBox.startX, currentX);
-    const newY = Math.min(selectionBox.startY, currentY);
-    const width = Math.abs(currentX - selectionBox.startX);
-    const height = Math.abs(currentY - selectionBox.startY);
-
-    setSelectionBox(prev => ({ ...prev, x: newX, y: newY, width, height }));
-  }, [selectionBox]);
-
-  const onSelectionMouseUp = useCallback((e, reactFlowInstance) => {
-    // If we are not selecting, or if we don't have the instance to convert coords, stop.
-    if (!selectionBox || !reactFlowInstance) {
-        setSelectionBox(null);
-        return;
-    }
-
-    // 1. Convert Screen Box to Graph Coordinates
-    // We use the project() function from React Flow to account for Zoom and Pan
-    const startPoint = reactFlowInstance.project({ x: selectionBox.x, y: selectionBox.y });
-    const endPoint = reactFlowInstance.project({ 
-        x: selectionBox.x + selectionBox.width, 
-        y: selectionBox.y + selectionBox.height 
-    });
-
-    const graphBox = {
-        x: Math.min(startPoint.x, endPoint.x),
-        y: Math.min(startPoint.y, endPoint.y),
-        width: Math.abs(endPoint.x - startPoint.x),
-        height: Math.abs(endPoint.y - startPoint.y)
-    };
-
-    // 2. Find Nodes that intersect with the Graph Box
-    const newlySelectedNodes = nodesRef.current.filter(node => {
-        // Use node width/height or fallback to constants
-        const nWidth = node.width || NODE_WIDTH || 150;
-        const nHeight = node.height || NODE_HEIGHT || 50;
-
-        return (
-            node.position.x < graphBox.x + graphBox.width &&
-            node.position.x + nWidth > graphBox.x &&
-            node.position.y < graphBox.y + graphBox.height &&
-            node.position.y + nHeight > graphBox.y
-        );
-    });
-
-    // 3. Update State
-    if (newlySelectedNodes.length > 0) {
-        setSelectedElements(newlySelectedNodes);
-        setState(prev => ({
-            ...prev,
-            nodes: prev.nodes.map(n => ({
-                ...n,
-                selected: newlySelectedNodes.some(sn => sn.id === n.id)
-            }))
-        }), true);
-    } else {
-        // Optional: Deselect if box is empty? 
-        // setSelectedElements([]); 
-    }
-
-    setSelectionBox(null);
-  }, [selectionBox, setState]);
-  // ---------------------------------------------
-
 
   // --- 1. STANDARD SCAN ---
   const handleFetchNeighbors = useCallback(async (sourceNode, setLoading, setError) => {
@@ -524,12 +432,6 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
     edges, setEdges: (newEdges) => setState(prev => ({...prev, edges: typeof newEdges === 'function' ? newEdges(prev.edges) : newEdges}), true),
     selectedElements, snapLines, onNodesChange, onNodeClick, onPaneClick, onSelectionChange, handleDeleteElements, 
     handleUpdateNodeData, 
-    handleAddGroup, handleAddTextNode, createNodeObject, resetMap, undo, redo, alignElements, distributeElements, bringForward, sendBackward, bringToFront, sendToBack, selectAllByType: selectAllByTypeHandler, currentNeighbors, confirmNeighbor, confirmPreviewNode, setLoading: setIsLoading, setError: setError, handleFullScan, setState,
-    
-    // --- NEW EXPORTS FOR SELECTION BOX ---
-    selectionBox, 
-    onSelectionMouseDown, 
-    onSelectionMouseMove, 
-    onSelectionMouseUp
+    handleAddGroup, handleAddTextNode, createNodeObject, resetMap, undo, redo, alignElements, distributeElements, bringForward, sendBackward, bringToFront, sendToBack, selectAllByType: selectAllByTypeHandler, currentNeighbors, confirmNeighbor, confirmPreviewNode, setLoading: setIsLoading, setError: setError, handleFullScan, setState
   };
 };

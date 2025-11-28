@@ -166,24 +166,33 @@ const Map = ({ nodes, edges, onNodeClick, onNodesChange, onPaneClick, onSelectio
           };
 
           // Filter nodes that intersect with the box
-          // Note: Project node positions to screen coordinates to compare with selectionRect
           if (selectionRect.width >= 5 || selectionRect.height >= 5) {
+              
+              // 1. Convert Screen Pixels (Selection Box) -> Graph Coordinates
+              // reactFlowInstance.project takes {x,y} relative to the viewport container and returns internal graph positions
+              const startGraphPos = reactFlowInstance.project({ x: selectionRect.x, y: selectionRect.y });
+              const endGraphPos = reactFlowInstance.project({ x: selectionRect.x + selectionRect.width, y: selectionRect.y + selectionRect.height });
+
+              const graphBox = {
+                  x: Math.min(startGraphPos.x, endGraphPos.x),
+                  y: Math.min(startGraphPos.y, endGraphPos.y),
+                  x2: Math.max(startGraphPos.x, endGraphPos.x),
+                  y2: Math.max(startGraphPos.y, endGraphPos.y),
+              };
+
+              // 2. Filter nodes based on intersection in Graph Space
               const selectedNodes = reactFlowInstance.getNodes().filter(node => {
-                  if (!node.position) return false;
+                  if (!node.position || node.hidden) return false;
                   
-                  // Convert Node Graph Position -> Screen Position
-                  const nodePosition = reactFlowInstance.project(node.position);
-                  
-                  // Scale width/height by current zoom level
-                  const currentZoom = reactFlowInstance.getZoom();
-                  const nodeWidth = (node.width || 150) * currentZoom;
-                  const nodeHeight = (node.height || 50) * currentZoom;
+                  // Fallback dimensions if node hasn't been measured yet
+                  const nodeWidth = node.width || 150;
+                  const nodeHeight = node.height || 50;
 
                   return (
-                      nodePosition.x < selectionRect.x + selectionRect.width &&
-                      nodePosition.x + nodeWidth > selectionRect.x &&
-                      nodePosition.y < selectionRect.y + selectionRect.height &&
-                      nodePosition.y + nodeHeight > selectionRect.y
+                      node.position.x < graphBox.x2 &&
+                      node.position.x + nodeWidth > graphBox.x &&
+                      node.position.y < graphBox.y2 &&
+                      node.position.y + nodeHeight > graphBox.y
                   );
               });
               
@@ -227,8 +236,8 @@ const Map = ({ nodes, edges, onNodeClick, onNodesChange, onPaneClick, onSelectio
         nodeTypes={nodeTypes}
         fitView
         selectNodesOnDrag={false}
-        // Optional: Disable standard pan on middle button so it doesn't fight our logic
-        // panOnDrag={ [0] } // Only Left Click Pans? (Requires React Flow v11+)
+        // Disable panning on Middle Button (1) so it doesn't conflict with selection
+        panOnDrag={[0, 2]} 
       >
         <MiniMap nodeColor={minimapNodeColor} />
         <Controls />
