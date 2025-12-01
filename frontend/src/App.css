@@ -954,13 +954,13 @@ input[type="range"]::-moz-range-thumb:hover {
   align-items: center;
   justify-content: center;
   padding: 8px 4px;
-  background-color: white;
+  background-color: rgb(93, 93, 93);
   border: 1px solid #ced4da;
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s ease;
   min-height: 36px;
-  color: #495057;
+  color: #ffffff;
   font-size: 0.85rem;
   font-weight: 500;
 }
