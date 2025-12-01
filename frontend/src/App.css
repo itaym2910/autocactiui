@@ -969,7 +969,7 @@ input[type="range"]::-moz-range-thumb:hover {
 .multi-select-toolbar button:hover {
   background-color: #51565a;
   border-color: #adb5bd;
-  color: #212529;
+  color: #ffffff;
   transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
