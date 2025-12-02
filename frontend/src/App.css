@@ -904,103 +904,144 @@ input[type="range"]::-moz-range-thumb:hover {
   box-shadow: none;
 }
 
-/* --- Multi Select Toolbar Specific Styles --- */
+/* --- Multi Select Toolbar Styled Better --- */
 
 .multi-select-toolbar {
-  background-color: #646668;
-  padding: 15px;
+  background-color: var(--bg-secondary);
+  padding: 16px;
   border-radius: 8px;
-  border: 1px solid #575757;
-  margin-top: 10px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 6px var(--shadow-color);
+  margin-bottom: 20px;
+  animation: fadeIn 0.3s ease;
 }
 
+/* Header within the toolbar */
 .multi-select-toolbar h3 {
   margin-top: 0;
   font-size: 1rem;
-  color: #fdfdfd;
-  border-bottom: 1px solid #4f4f4f;
-  padding-bottom: 8px;
-  margin-bottom: 12px;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
+/* Section labels (Align, Distribute, etc) */
 .multi-select-toolbar h4 {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   text-transform: uppercase;
-  color: #ffffff;
-  margin: 12px 0 6px 0;
+  color: var(--text-secondary);
+  margin: 12px 0 8px 0;
   letter-spacing: 0.5px;
+  font-weight: 600;
 }
 
-/* The Grid Container for Buttons */
-.multi-select-toolbar .button-grid {
+/* General button grid container */
+.multi-select-toolbar .button-grid,
+.multi-select-toolbar .full-width-grid,
+.multi-select-toolbar .distribute {
   display: grid;
-  grid-template-columns: repeat(3, 1fr); /* 3 buttons per row for alignment */
-  gap: 6px;
+  gap: 8px;
 }
 
-/* Specific grid for "Layering" (2 buttons per row looks better for text) */
-.multi-select-toolbar .full-width-grid {
+/* 3 columns for Alignment buttons */
+.multi-select-toolbar .button-grid {
+  grid-template-columns: repeat(3, 1fr); 
+}
+
+/* 2 columns for Layering and Distribute */
+.multi-select-toolbar .full-width-grid,
+.multi-select-toolbar .distribute {
   grid-template-columns: repeat(2, 1fr); 
 }
 
-/* Specific grid for "Distribute" */
-.multi-select-toolbar .distribute {
-  grid-template-columns: repeat(2, 1fr);
-}
-
-/* --- BUTTON STYLES --- */
+/* --- TOOLBAR BUTTON STYLES --- */
 .multi-select-toolbar button {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 4px;
-  background-color: rgb(93, 93, 93);
-  border: 1px solid #ced4da;
-  border-radius: 4px;
+  padding: 8px;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
-  min-height: 36px;
-  color: #ffffff;
+  min-height: 40px; /* Slightly taller for better touch target */
+  color: var(--text-primary);
   font-size: 0.85rem;
-  font-weight: 500;
+  margin-bottom: 0; /* Override generic button margin */
+  box-shadow: 0 1px 2px var(--shadow-color);
 }
 
 /* Hover State */
 .multi-select-toolbar button:hover {
-  background-color: #51565a;
-  border-color: #adb5bd;
-  color: #ffffff;
+  background-color: var(--bg-tertiary);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
 /* Active/Pressed State */
 .multi-select-toolbar button:active {
   transform: translateY(0);
-  background-color: #dae0e5;
-  box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+  background-color: var(--border-color);
 }
 
 /* SVG Icon Styling within buttons */
 .multi-select-toolbar button svg {
-  width: 20px;
-  height: 20px;
-  fill: currentColor; /* Matches the text color of the button */
+  width: 18px;
+  height: 18px;
+  fill: currentColor; 
 }
 
-/* --- Danger Button (Delete) --- */
+/* --- Danger Button (Delete) Specifics --- */
 .multi-select-toolbar button.danger {
   width: 100%;
-  margin-top: 10px;
-  background-color: #d93e3e;
-  border-color: #e13c3c;
-  color: #ffffff;
+  margin-top: 15px;
+  background-color: rgba(220, 53, 69, 0.1); /* Subtle red background */
+  border: 1px solid var(--accent-danger);
+  color: var(--accent-danger);
+  font-weight: 600;
 }
 
 .multi-select-toolbar button.danger:hover {
-  background-color: #ffe3e3;
-  border-color: #ff6b6b;
-  color: #c92a2a;
+  background-color: var(--accent-danger);
+  color: #ffffff;
+  border-color: var(--accent-danger);
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.4);
+}
+
+/* Download Options in Popup - Styling Update */
+.download-options-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 10px;
+}
+
+.download-option-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 20px;
+  background-color: var(--bg-secondary);
+  border: 2px solid transparent;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text-primary);
+}
+
+.download-option-btn:hover {
+  border-color: var(--accent-primary);
+  background-color: var(--bg-tertiary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--shadow-color);
 }
 
 /* Animations */
