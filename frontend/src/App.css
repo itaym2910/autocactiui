@@ -1131,6 +1131,11 @@ button.danger {
     background-color: var(--accent-danger);
 }
 
+.react-flow__edge-path {
+  fill: none !important;
+}
+
+
 /* Animations */
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes scaleUp { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }

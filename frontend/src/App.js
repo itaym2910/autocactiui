@@ -250,11 +250,23 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
     const mapElement = document.querySelector('.react-flow');
     if (!mapElement) { setAppError('Map element not found'); return; }
     setIsLoading(true);
+
+    // 1. SELECT ALL PATHS AND FORCE FILL="NONE" BEFORE CAPTURE
+    // This is a temporary safeguard for the export
+    const paths = mapElement.querySelectorAll('.react-flow__edge-path');
+    paths.forEach(path => {
+      path.style.fill = 'none';
+    });
+
     const fileName = `${mapName || 'network-map'}.png`;
     const options = {
       backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff',
       pixelRatio: 2,
-      filter: (node) => !['react-flow__controls', 'react-flow__minimap'].some(cls => node.classList && node.classList.contains(cls))
+      filter: (node) => !['react-flow__controls', 'react-flow__minimap'].some(cls => node.classList && node.classList.contains(cls)),
+      // 2. ENSURE STYLE IS APPLIED DURING GENERATION
+      style: {
+        'fill': 'none'
+      }
     };
     try {
       const blob = await htmlToImage.toBlob(mapElement, options);
