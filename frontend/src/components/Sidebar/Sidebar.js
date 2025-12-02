@@ -49,9 +49,7 @@ const Sidebar = ({
   const isAdmin = currentUser && (currentUser.privilege === 'admin' || currentUser.role === 'admin');
   const isViewer = currentUser && (currentUser.privilege === 'viewer' || currentUser.role === 'viewer');
 
-  // Logic to choose which component to render
   const renderContextualContent = () => {
-     // 1. IF MULTIPLE ITEMS ARE SELECTED -> Show the Toolbar
      if (selectedElements.length > 1) {
          return (
             <div className="animate-fade-in">
@@ -68,16 +66,12 @@ const Sidebar = ({
             </div>
          );
      }
-
-     // 2. IF ONE ITEM IS SELECTED -> Show the specific Editor
      if (selectedElements.length === 1) {
         const selected = selectedElements[0];
         if(selected.type === 'custom') return <DeviceEditor selectedElement={selected} onDeleteElements={onDeleteElements} neighbors={neighbors} onAddNeighbor={onAddNeighbor} />;
         if(selected.type === 'group') return <GroupEditor selectedElement={selected} onUpdateNodeData={onUpdateNodeData} onDeleteElements={onDeleteElements} />;
         if(selected.type === 'text') return <TextEditor selectedElement={selected} onUpdateNodeData={onUpdateNodeData} onDeleteElements={onDeleteElements} />;
      }
-     
-     // 3. NOTHING SELECTED -> Show Placeholder
      return <SidebarPlaceholder isMapStarted={isMapStarted} />;
   };
 
@@ -111,13 +105,16 @@ const Sidebar = ({
 
       {/* 1. TOP SECTION: Map Controls (Upload/Name) */}
       {!isViewer && (
-        <MapExportControls
-          mapName={mapName}
-          setMapName={setMapName}
-          onUploadMap={onUploadMap}
-          isUploading={isUploading}
-          isMapStarted={isMapStarted}
-        />
+        // Added wrapper class "action-buttons-green" to target buttons inside MapExportControls
+        <div className="action-buttons-green">
+            <MapExportControls
+            mapName={mapName}
+            setMapName={setMapName}
+            onUploadMap={onUploadMap}
+            isUploading={isUploading}
+            isMapStarted={isMapStarted}
+            />
+        </div>
       )}
       
       {isViewer && (
@@ -128,15 +125,14 @@ const Sidebar = ({
 
       <hr />
 
-      {/* 2. CONTEXTUAL SECTION: Editors / Multi-Select / Placeholder */}
-      {/* MOVED UP: This is now above Session and Tools */}
+      {/* 2. CONTEXTUAL SECTION */}
       <div className="contextual-section">
         {renderContextualContent()}
       </div>
 
       <hr />
 
-      {/* 3. MAP TOOLS: Add Items (Only if map started) */}
+      {/* 3. MAP TOOLS */}
       {isMapStarted && (
         <div className="map-tools-section">
           <h3>{t('sidebar.mapTools')}</h3>
@@ -149,9 +145,16 @@ const Sidebar = ({
           </div>
            <div className="control-group">
               <label>{t('sidebar.mapActions')}</label>
-              <button onClick={() => setShowDownloadPopup(true)} className="secondary" disabled={!isMapStarted} style={{marginBottom: '10px'}}>
+              
+              {/* REMOVED className="secondary" -> Defaults to Primary (Blue) */}
+              <button 
+                onClick={() => setShowDownloadPopup(true)} 
+                disabled={!isMapStarted} 
+                style={{marginBottom: '10px'}}
+              >
                   {t('sidebar.download')} 
               </button>
+
               <button onClick={handleResetClick} className="danger" disabled={!isMapStarted}>
                 {t('sidebar.clearMap')}
               </button>
@@ -160,7 +163,7 @@ const Sidebar = ({
         </div>
       )}
       
-      {/* 4. BOTTOM SECTION: Session Settings */}
+      {/* 4. BOTTOM SECTION */}
       <div className="session-section">
         <h3>{t('sidebar.session')}</h3>
         <div className="control-group">

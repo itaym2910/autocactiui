@@ -1043,6 +1043,7 @@ input[type="range"]::-moz-range-thumb:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px var(--shadow-color);
 }
+
 /*Scroll Bar*/
 ::-webkit-scrollbar {
   width: 8px;
@@ -1081,6 +1082,53 @@ input[type="range"]::-moz-range-thumb:hover {
 
 [data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
   background-color: var(--accent-secondary);
+}
+
+
+/* --- BUTTON COLORS --- */
+
+/* 1. Explicit Green Buttons (Upload & Generate) */
+/* We target the wrapper we added in Sidebar.js */
+.action-buttons-green button {
+    background-color: var(--accent-success); /* Green */
+    color: #ffffff;
+    border: 1px solid transparent;
+}
+
+.action-buttons-green button:hover {
+    filter: brightness(0.9); /* Slightly darker on hover */
+    transform: translateY(-1px);
+}
+
+.action-buttons-green button:disabled {
+    background-color: var(--accent-secondary);
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* 2. Utility Class for Green Buttons (Optional usage) */
+button.success {
+    background-color: var(--accent-success);
+    color: white;
+}
+button.success:hover {
+    filter: brightness(0.9);
+}
+
+/* 3. Ensure Default Button is Blue (for Download) */
+button {
+    /* Existing style should be var(--accent-primary) */
+    background-color: var(--accent-primary); 
+    color: var(--text-on-accent);
+}
+
+button.secondary {
+    background-color: var(--accent-secondary);
+}
+
+button.danger {
+    background-color: var(--accent-danger);
 }
 
 /* Animations */
