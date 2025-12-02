@@ -18,7 +18,6 @@ const MarqueeSelection = ({ startPos, endPos }) => {
         top: Math.min(startPos.y, endPos.y),
         width: Math.abs(startPos.x - endPos.x),
         height: Math.abs(startPos.y - endPos.y),
-        // Default styling for the selection box (Blue)
         border: '1px solid #007bff',
         backgroundColor: 'rgba(0, 123, 255, 0.2)', 
         pointerEvents: 'none',
@@ -89,7 +88,7 @@ const Map = ({ nodes, edges, onNodeClick, onNodesChange, onPaneClick, onSelectio
   
   const [marqueeStart, setMarqueeStart] = useState(null);
   const [marqueeEnd, setMarqueeEnd] = useState(null);
-  const [isSelecting, setIsSelecting] = useState(false); // Track if we are in middle-click mode
+  const [isSelecting, setIsSelecting] = useState(false);
   
   const mapRef = useRef(null);
   const reactFlowInstance = useReactFlow();
@@ -113,12 +112,11 @@ const Map = ({ nodes, edges, onNodeClick, onNodesChange, onPaneClick, onSelectio
 
   // --- 1. MOUSE DOWN: Start Selection on Middle Click ---
   const handlePaneMouseDown = (event) => {
-      // Check for Middle Mouse Button (Button 1)
+      // Button 1 is Middle Mouse; Button 0 is Left Mouse
       if (event.button === 1) {
-          event.preventDefault();  // Stop browser auto-scroll icon
-          event.stopPropagation(); // Stop React Flow from Panning
+          event.preventDefault(); 
+          event.stopPropagation();
 
-          // Don't start if clicking on controls
           if (event.target.closest('.react-flow__controls')) return;
 
           const mapBounds = mapRef.current.getBoundingClientRect();
@@ -131,7 +129,6 @@ const Map = ({ nodes, edges, onNodeClick, onNodesChange, onPaneClick, onSelectio
           setMarqueeEnd(pos);
           setIsSelecting(true);
       }
-      // Left click logic (handled by React Flow or onPaneClick usually)
   };
 
   // --- 2. MOUSE MOVE: Update Box Size ---
@@ -145,18 +142,25 @@ const Map = ({ nodes, edges, onNodeClick, onNodesChange, onPaneClick, onSelectio
       });
   };
   
-  // --- 3. MOUSE UP: Calculate Selection ---
+  // --- 3. MOUSE UP: Calculate Selection & Handle Deselection ---
   const handlePaneMouseUp = useCallback((event) => {
-      // If we were not middle-click selecting, handle standard left-click pane logic
+      // A. STANDARD CLICK (Not Selecting)
       if (!isSelecting) {
-        // Only trigger onPaneClick for Left Button (0) to deselect items
+        // If left clicking on empty pane, deselect all nodes
         if (event.button === 0 && !event.target.closest('.react-flow__node') && !event.target.closest('.react-flow__edge')) {
-             onPaneClick(event);
+             
+             // 1. Update React Flow internal state to deselect everything
+             reactFlowInstance.setNodes((prevNodes) => 
+                prevNodes.map(n => ({ ...n, selected: false }))
+             );
+
+             // 2. Trigger prop callback
+             if(onPaneClick) onPaneClick(event);
         }
         return;
       }
 
-      // If we were selecting, finish the logic
+      // B. MARQUEE SELECTION END
       if (marqueeStart && marqueeEnd) {
           const selectionRect = {
               x: Math.min(marqueeStart.x, marqueeEnd.x),
@@ -165,11 +169,8 @@ const Map = ({ nodes, edges, onNodeClick, onNodesChange, onPaneClick, onSelectio
               height: Math.abs(marqueeStart.y - marqueeEnd.y),
           };
 
-          // Filter nodes that intersect with the box
           if (selectionRect.width >= 5 || selectionRect.height >= 5) {
               
-              // 1. Convert Screen Pixels (Selection Box) -> Graph Coordinates
-              // reactFlowInstance.project takes {x,y} relative to the viewport container and returns internal graph positions
               const startGraphPos = reactFlowInstance.project({ x: selectionRect.x, y: selectionRect.y });
               const endGraphPos = reactFlowInstance.project({ x: selectionRect.x + selectionRect.width, y: selectionRect.y + selectionRect.height });
 
@@ -180,24 +181,37 @@ const Map = ({ nodes, edges, onNodeClick, onNodesChange, onPaneClick, onSelectio
                   y2: Math.max(startGraphPos.y, endGraphPos.y),
               };
 
-              // 2. Filter nodes based on intersection in Graph Space
+              // Identify IDs of nodes intersecting the selection box
+              const selectedIds = new Set();
+              
               const selectedNodes = reactFlowInstance.getNodes().filter(node => {
                   if (!node.position || node.hidden) return false;
-                  
-                  // Fallback dimensions if node hasn't been measured yet
                   const nodeWidth = node.width || 150;
                   const nodeHeight = node.height || 50;
 
-                  return (
+                  const isSelected = (
                       node.position.x < graphBox.x2 &&
                       node.position.x + nodeWidth > graphBox.x &&
                       node.position.y < graphBox.y2 &&
                       node.position.y + nodeHeight > graphBox.y
                   );
+
+                  if (isSelected) selectedIds.add(node.id);
+                  return isSelected;
               });
+
+              // CRITICAL: Update React Flow state to set 'selected: true'
+              // This enables the "move together" feature
+              reactFlowInstance.setNodes((prevNodes) => 
+                prevNodes.map((node) => ({
+                    ...node,
+                    selected: selectedIds.has(node.id)
+                }))
+              );
               
-              // Notify parent of new selection
-              onSelectionChange({ nodes: selectedNodes, edges: [] });
+              if(onSelectionChange) {
+                  onSelectionChange({ nodes: selectedNodes, edges: [] });
+              }
           }
       }
 
@@ -209,6 +223,7 @@ const Map = ({ nodes, edges, onNodeClick, onNodesChange, onPaneClick, onSelectio
   }, [marqueeStart, marqueeEnd, isSelecting, reactFlowInstance, onSelectionChange, onPaneClick]);
 
   const handleNodeMouseUp = (event) => {
+    // Prevent pane click from firing when releasing on a node
     event.stopPropagation();
   };
 
@@ -219,7 +234,6 @@ const Map = ({ nodes, edges, onNodeClick, onNodesChange, onPaneClick, onSelectio
         onMouseDown={handlePaneMouseDown}
         onMouseMove={handlePaneMouseMove}
         onMouseUp={handlePaneMouseUp}
-        // Ensure the div takes up space
         style={{ width: '100%', height: '100%' }} 
     >
       <ReactFlow
@@ -230,13 +244,15 @@ const Map = ({ nodes, edges, onNodeClick, onNodesChange, onPaneClick, onSelectio
         onNodesChange={onNodesChange}
         onNodeContextMenu={onNodeContextMenu}
         onPaneContextMenu={onPaneContextMenu}
-        // We handle clicks manually in handlePaneMouseUp to distinguish drag vs click
+        // We handle pane clicks manually in handlePaneMouseUp
         onPaneClick={undefined} 
         onSelectionChange={onSelectionChange}
         nodeTypes={nodeTypes}
         fitView
+        // Allow drag selection via standard library (if needed), or disable if you strictly want middle click
+        // To allow multi-drag, selectNodesOnDrag must not be false if relying on native selection, 
+        // but since we manually set `selected: true`, this will work.
         selectNodesOnDrag={false}
-        // Disable panning on Middle Button (1) so it doesn't conflict with selection
         panOnDrag={[0, 2]} 
       >
         <MiniMap nodeColor={minimapNodeColor} />
