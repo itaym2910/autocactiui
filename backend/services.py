@@ -27,14 +27,13 @@ def verify_user(username, password):
     return None
 
 # ---
-# Mock Database simulating your network devices and connections based on the new API spec
+# Mock Database simulating your network devices and connections
 MOCK_NETWORK = {
     "10.10.1.3": {
         "hostname": "Core-Router-1",
         "type": "Router",
         "model": "Cisco CSR1000V",
     },
-    # --- NEW: Second Core Router for Multi-Link Test ---
     "10.10.1.4": {
         "hostname": "Core-Router-2",
         "type": "Router",
@@ -106,10 +105,9 @@ MOCK_NETWORK = {
         "type": "Switch", 
         "model": "HP ProLiant DL380"
     },
-    # --- NEW: Storage Array for Multi-Link Test ---
     "10.20.50.50": {
         "hostname": "Storage-Array-1",
-        "type": "Storage", # Ensure you have an icon for this or it falls back to unknown
+        "type": "Storage",
         "model": "NetApp FAS"
     },
     # --- DEVICES ONLY FOUND VIA FULL SCAN (ARP/IP SCAN) ---
@@ -171,24 +169,21 @@ MOCK_NETWORK = {
     "10.100.15.1": {"hostname": "Branch-Router-15", "type": "Router", "model": "Cisco ISR 4331"},
 }
 
-# Standard CDP Neighbors
+# Standard CDP Neighbors (SIMPLE SCAN)
 MOCK_NEIGHBORS = {
     "10.10.1.3": [
+        # Note: Dist-Switch-A is here with Gig1 and Gig3
         {"interface": "GigabitEthernet1", "hostname": "Dist-Switch-A", "ip": "10.10.1.2", "description": "Uplink to Dist-A", "bandwidth": "10G"},
         {"interface": "GigabitEthernet2", "hostname": "Dist-Switch-B", "ip": "10.10.2.2", "description": "Uplink to Dist-B", "bandwidth": "10G"},
         {"interface": "GigabitEthernet3", "hostname": "Dist-Switch-A", "ip": "10.10.1.2", "description": "Redundant Uplink to Dist-A", "bandwidth": "10G"},
         {"interface": "TenGigabitEthernet4", "hostname": "DC-Core-Router-1", "ip": "10.20.1.1", "description": "DC Interconnect 1", "bandwidth": "40G"},
         {"interface": "TenGigabitEthernet5", "hostname": "DC-Core-Router-1", "ip": "10.20.1.1", "description": "DC Interconnect 2", "bandwidth": "40G"},
-        
-        # --- NEW: Triple Link to Core-Router-2 ---
         {"interface": "TenGigabitEthernet6", "hostname": "Core-Router-2", "ip": "10.10.1.4", "description": "Cross-Core Link 1", "bandwidth": "10G"},
         {"interface": "TenGigabitEthernet7", "hostname": "Core-Router-2", "ip": "10.10.1.4", "description": "Cross-Core Link 2", "bandwidth": "10G"},
         {"interface": "TenGigabitEthernet8", "hostname": "Core-Router-2", "ip": "10.10.1.4", "description": "Cross-Core Link 3", "bandwidth": "10G"},
-
         {"interface": "GigabitEthernet1/1", "hostname": "Extra-Access-SW-1", "ip": "192.168.10.1", "description": "Link to SW 1", "bandwidth": "1G"},
         {"interface": "TenGigabitEthernet2/1", "hostname": "Branch-Router-1", "ip": "10.100.1.1", "description": "Link to Branch 1", "bandwidth": "1G"},
     ],
-    # --- NEW: Neighbors for Core-Router-2 ---
     "10.10.1.4": [
         {"interface": "TenGigabitEthernet6", "hostname": "Core-Router-1", "ip": "10.10.1.3", "description": "Cross-Core Link 1", "bandwidth": "10G"},
         {"interface": "TenGigabitEthernet7", "hostname": "Core-Router-1", "ip": "10.10.1.3", "description": "Cross-Core Link 2", "bandwidth": "10G"},
@@ -229,7 +224,6 @@ MOCK_NEIGHBORS = {
     "172.16.30.12": [
         {"interface": "eno1", "hostname": "VPN-Encryptor-1", "ip": "172.16.20.8", "description": "Uplink", "bandwidth": "100M"},
     ],
-    # --- New Data Center Neighbors ---
     "10.20.1.1": [
         {"interface": "Ethernet1/1", "hostname": "Core-Router-1", "ip": "10.10.1.3", "description": "Campus Interconnect 1", "bandwidth": "40G"},
         {"interface": "Ethernet1/2", "hostname": "Core-Router-1", "ip": "10.10.1.3", "description": "Campus Interconnect 2", "bandwidth": "40G"},
@@ -245,11 +239,9 @@ MOCK_NEIGHBORS = {
         {"interface": "Ethernet11", "hostname": "Server-A", "ip": "10.20.10.100", "description": "LACP to Server-A (2)", "bandwidth": "10G"},
         {"interface": "Ethernet12", "hostname": "Server-A", "ip": "10.20.10.100", "description": "LACP to Server-A (3)", "bandwidth": "10G"},
         {"interface": "Ethernet13", "hostname": "Server-A", "ip": "10.20.10.100", "description": "LACP to Server-A (4)", "bandwidth": "10G"},
-        # --- NEW: Dual Link to Storage ---
         {"interface": "Ethernet20", "hostname": "Storage-Array-1", "ip": "10.20.50.50", "description": "iSCSI Path A", "bandwidth": "25G"},
         {"interface": "Ethernet21", "hostname": "Storage-Array-1", "ip": "10.20.50.50", "description": "iSCSI Path B", "bandwidth": "25G"},
     ],
-    # --- NEW: Neighbors for Storage Array ---
     "10.20.50.50": [
          {"interface": "e0a", "hostname": "DC-Dist-Switch-C", "ip": "10.20.2.1", "description": "Uplink A", "bandwidth": "25G"},
          {"interface": "e0b", "hostname": "DC-Dist-Switch-C", "ip": "10.20.2.1", "description": "Uplink B", "bandwidth": "25G"},
@@ -270,7 +262,6 @@ MOCK_NEIGHBORS = {
     "10.20.10.101": [
          {"interface": "eth0", "hostname": "DC-Dist-Switch-D", "ip": "10.20.2.2", "description": "Uplink", "bandwidth": "10G"},
     ],
-    # --- Extra neighbors for default device (reverse connections) ---
     "192.168.10.1": [{"interface": "GigabitEthernet0/1", "hostname": "Core-Router-1", "ip": "10.10.1.3", "description": "Uplink", "bandwidth": "1G"}],
     "10.100.1.1": [{"interface": "GigabitEthernet0/0/0", "hostname": "Core-Router-1", "ip": "10.10.1.3", "description": "WAN Link", "bandwidth": "1G"}],
 }
@@ -279,103 +270,50 @@ MOCK_NEIGHBORS = {
 # These connections are NOT in MOCK_NEIGHBORS. They only appear when calling get_full_device_neighbors.
 MOCK_FULL_SCAN_EXTRAS = {
     "10.10.1.3": [
-        {"interface": "Vlan999", "hostname": "Shadow-IT-Router", "ip": "10.99.99.1", "description": "ARP Entry - Unknown Router", "bandwidth": "Unknown"},
-        {"interface": "Vlan999", "hostname": "Unmanaged-Switch-Lab", "ip": "10.99.99.50", "description": "ARP Entry - Lab", "bandwidth": "Unknown"},
-        # --- NEW: Multi-Link detected in Full Scan ---
-        {"interface": "Vlan100", "hostname": "Unknown-MultiLink-Device", "ip": "10.99.99.100", "description": "Ghost Device Link 1", "bandwidth": "Unknown"},
-        {"interface": "Vlan101", "hostname": "Unknown-MultiLink-Device", "ip": "10.99.99.100", "description": "Ghost Device Link 2", "bandwidth": "Unknown"},
+        # --- TEST CASE: Dist-Switch-A is already in simple scan (Gig1, Gig3) ---
+        # --- But Full Scan finds it on Management0 as well ---
+        {
+            "interface": "Management0", 
+            "hostname": "Dist-Switch-A", 
+            "ip": "10.10.1.2", 
+            "description": "OOB Management detected via IP Scan", 
+            "bandwidth": "100M",
+            "isFullScan": True
+        },
+
+        # --- Standard Full Scan Only Devices ---
+        {"interface": "Vlan999", "hostname": "Shadow-IT-Router", "ip": "10.99.99.1", "description": "ARP Entry - Unknown Router", "bandwidth": "Unknown", "isFullScan": True},
+        {"interface": "Vlan999", "hostname": "Unmanaged-Switch-Lab", "ip": "10.99.99.50", "description": "ARP Entry - Lab", "bandwidth": "Unknown", "isFullScan": True},
+        
+        # --- Multi-Link detected in Full Scan ---
+        {"interface": "Vlan100", "hostname": "Unknown-MultiLink-Device", "ip": "10.99.99.100", "description": "Ghost Device Link 1", "bandwidth": "Unknown", "isFullScan": True},
+        {"interface": "Vlan101", "hostname": "Unknown-MultiLink-Device", "ip": "10.99.99.100", "description": "Ghost Device Link 2", "bandwidth": "Unknown", "isFullScan": True},
     ],
     "10.10.1.2": [
-         {"interface": "GigabitEthernet2/0/24", "hostname": "IoT-Gateway", "ip": "10.10.1.250", "description": "MAC Table Entry", "bandwidth": "100M"}
+         {"interface": "GigabitEthernet2/0/24", "hostname": "IoT-Gateway", "ip": "10.10.1.250", "description": "MAC Table Entry", "bandwidth": "100M", "isFullScan": True}
     ],
     "192.168.1.10": [
-        {"interface": "GigabitEthernet1/0/48", "hostname": "Hidden-Camera-1", "ip": "192.168.1.200", "description": "Detected via IP Scan", "bandwidth": "100M"}
+        {"interface": "GigabitEthernet1/0/48", "hostname": "Hidden-Camera-1", "ip": "192.168.1.200", "description": "Detected via IP Scan", "bandwidth": "100M", "isFullScan": True}
     ]
 }
 
 # --- NEW MOCK Cacti Data Structure ---
-
-# A flat dictionary of all possible Cacti installations for easy lookup by ID.
-# --- MOCK Cacti Data Structure ---
-
-# 1. DEFINE THE SERVERS
 MOCK_CACTI_INSTALLATIONS_DB = {
-    1: {
-        "id": 1,
-        "hostname": "cacti-main-dc",
-        "ip": "192.168.1.100",
-    },
-    2: {
-        "id": 2,
-        "hostname": "cacti-prod-london",
-        "ip": "10.200.5.10",
-    },
-    3: { 
-        "id": 3,
-        "hostname": "21.250.1.2",
-        "ip": "21.250.1.2",
-    },
-    4: {
-        "id": 4,
-        "hostname": "21.252.1.2",
-        "ip": "21.252.1.2",
-    },
-    5: {
-        "id": 5,
-        "hostname": "cacti-branch-ny",
-        "ip": "10.50.1.50",
-    },
-    6: {
-        "id": 6,
-        "hostname": "cacti-branch-tokyo",
-        "ip": "10.60.1.50",
-    },
-    7: {
-        "id": 7,
-        "hostname": "cacti-disaster-recovery",
-        "ip": "172.16.99.5",
-    },
-    8: {
-        "id": 8,
-        "hostname": "zabbix-migration-test",
-        "ip": "192.168.88.88",
-    }
+    1: {"id": 1, "hostname": "cacti-main-dc", "ip": "192.168.1.100"},
+    2: {"id": 2, "hostname": "cacti-prod-london", "ip": "10.200.5.10"},
+    3: {"id": 3, "hostname": "21.250.1.2", "ip": "21.250.1.2"},
+    4: {"id": 4, "hostname": "21.252.1.2", "ip": "21.252.1.2"},
+    5: {"id": 5, "hostname": "cacti-branch-ny", "ip": "10.50.1.50"},
+    6: {"id": 6, "hostname": "cacti-branch-tokyo", "ip": "10.60.1.50"},
+    7: {"id": 7, "hostname": "cacti-disaster-recovery", "ip": "172.16.99.5"},
+    8: {"id": 8, "hostname": "zabbix-migration-test", "ip": "192.168.88.88"}
 }
 
-# 2. GROUP THEM TOGETHER
 MOCK_CACTI_GROUPS = [
-    {
-        "id": 1,
-        "name": "Core-Cacti-Group",
-        "installations": [
-            MOCK_CACTI_INSTALLATIONS_DB[3],
-            MOCK_CACTI_INSTALLATIONS_DB[4]
-        ]
-    },
-    {
-        "id": 2,
-        "name": "Site-Cacti-Group",
-        "installations": [
-            MOCK_CACTI_INSTALLATIONS_DB[1],
-            MOCK_CACTI_INSTALLATIONS_DB[2]
-        ]
-    },
-    {
-        "id": 3,
-        "name": "Takash-Cacti-Group",
-        "installations": [
-            MOCK_CACTI_INSTALLATIONS_DB[5], 
-            MOCK_CACTI_INSTALLATIONS_DB[6]  
-        ]
-    },
-    {
-        "id": 4,
-        "name": "Legacy-Cacti-Group",
-        "installations": [
-            MOCK_CACTI_INSTALLATIONS_DB[7], 
-            MOCK_CACTI_INSTALLATIONS_DB[8]  
-        ]
-    }
+    {"id": 1, "name": "Core-Cacti-Group", "installations": [MOCK_CACTI_INSTALLATIONS_DB[3], MOCK_CACTI_INSTALLATIONS_DB[4]]},
+    {"id": 2, "name": "Site-Cacti-Group", "installations": [MOCK_CACTI_INSTALLATIONS_DB[1], MOCK_CACTI_INSTALLATIONS_DB[2]]},
+    {"id": 3, "name": "Takash-Cacti-Group", "installations": [MOCK_CACTI_INSTALLATIONS_DB[5], MOCK_CACTI_INSTALLATIONS_DB[6]]},
+    {"id": 4, "name": "Legacy-Cacti-Group", "installations": [MOCK_CACTI_INSTALLATIONS_DB[7], MOCK_CACTI_INSTALLATIONS_DB[8]]}
 ]
 
 def get_cacti_groups():
@@ -405,7 +343,6 @@ def get_device_info(ip_address):
 def get_device_neighbors(ip_address):
     """Gets CDP neighbors of a device by IP address using SNMP (mocked)."""
     time.sleep(random.uniform(0.5, 1.5)) # Simulate network latency
-    # To simulate a failing device, we first check if the device itself is "known".
     if ip_address not in MOCK_NETWORK:
         return None
     if ip_address in MOCK_NEIGHBORS:
@@ -419,14 +356,14 @@ def get_full_device_neighbors(ip_address):
     if ip_address not in MOCK_NETWORK:
         return None
         
-    # Start with standard neighbors
+    # Start with standard neighbors (using list() to create a copy and avoid mutating global)
     results = []
     if ip_address in MOCK_NEIGHBORS:
-        results.extend(MOCK_NEIGHBORS[ip_address])
+        results.extend([dict(n) for n in MOCK_NEIGHBORS[ip_address]])
         
     # Add extra 'hidden' neighbors found by full scan
     if ip_address in MOCK_FULL_SCAN_EXTRAS:
-        results.extend(MOCK_FULL_SCAN_EXTRAS[ip_address])
+        results.extend([dict(n) for n in MOCK_FULL_SCAN_EXTRAS[ip_address]])
         
     if not results:
         return None
@@ -435,29 +372,22 @@ def get_full_device_neighbors(ip_address):
 
 def save_uploaded_map(map_image_file, config_content, map_name):
     """Saves the uploaded map image and config file to the designated folders."""
-    # Ensure directories exist
     maps_dir = "static/maps"
     configs_dir = "static/configs"
     os.makedirs(maps_dir, exist_ok=True)
     os.makedirs(configs_dir, exist_ok=True)
 
-    # Generate a unique filename to prevent overwrites and save the files
     unique_id = uuid.uuid4()
     
     # Save Image
     image_filename = f"{map_name}_{unique_id}.png"
     image_path = os.path.join(maps_dir, image_filename)
     
-    # Handle both FileStorage and in-memory BytesIO objects
     image_stream = getattr(map_image_file, 'stream', map_image_file)
     image = Image.open(image_stream)
     image.save(image_path)
     
-    # --- MODIFICATION ---
-    # The config file needs to point to the *actual* image file we just saved.
-    # We will replace the placeholder BACKGROUND line with the correct relative path.
-    # This path is relative from the config file's location (`static/configs`) 
-    # to the image's location (`static/maps`).
+    # Update Config Content
     cacti_image_path = f"../maps/{image_filename}"
     modified_config_content = re.sub(
         r'^(BACKGROUND\s+).*$', 
@@ -477,20 +407,16 @@ def save_uploaded_map(map_image_file, config_content, map_name):
 def process_map_task(task_id, map_image_bytes, config_content, map_name):
     """
     Simulates a long-running task to process and render a map.
-    This function runs in a background thread.
     """
     try:
-        # Update task status to PROCESSING
         MOCK_TASKS[task_id].update({
             'status': 'PROCESSING',
             'message': 'Saving uploaded map components...',
             'updated_at': datetime.utcnow().isoformat()
         })
         
-        # Simulate some processing time
         time.sleep(2)
 
-        # Step 1: Save the uploaded background image and the modified .conf file
         saved_paths = save_uploaded_map(map_image_bytes, config_content, map_name)
         config_path = saved_paths['config_path']
         
@@ -500,21 +426,16 @@ def process_map_task(task_id, map_image_bytes, config_content, map_name):
             'updated_at': datetime.utcnow().isoformat()
         })
         
-        # Simulate more processing time
         time.sleep(3)
         
-        # Step 2: Define the output path for the final rendered map
         config_filename = os.path.basename(config_path)
         final_map_filename = config_filename.replace('.conf', '.png')
         final_map_path = os.path.join('static/final_maps', final_map_filename)
 
-        # Step 3: Render the final map by drawing lines on the background and save it
         map_renderer.render_and_save_map(config_path, final_map_path)
         
-        # Step 4: Update task to SUCCESS
         MOCK_TASKS[task_id].update({
             'status': 'SUCCESS',
-            # The final URL will be constructed in the /task-status endpoint
             'message': 'Placeholder for final map URL.',
             'final_map_filename': final_map_filename,
             'updated_at': datetime.utcnow().isoformat()

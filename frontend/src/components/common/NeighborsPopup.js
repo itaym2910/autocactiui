@@ -8,19 +8,16 @@ const SearchIcon = () => (
     <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
   </svg>
 );
-
 const CloseIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M18 6L6 18M6 6L18 18" />
   </svg>
 );
-
 const CheckIcon = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M4 12.6111L8.92308 17.5L20 6.5" />
     </svg>
 );
-
 const GlobeIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" />
@@ -28,7 +25,6 @@ const GlobeIcon = () => (
     <path d="M12 2A15.3 15.3 0 0 1 16 12A15.3 15.3 0 0 1 12 22A15.3 15.3 0 0 1 8 12A15.3 15.3 0 0 1 12 2Z" />
   </svg>
 );
-
 const SettingsIcon = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="3"></circle>
@@ -38,15 +34,39 @@ const SettingsIcon = () => (
 
 // --- INTERNAL COMPONENT: Link Selection Modal ---
 const LinkSelectionModal = ({ group, initialSelection, onSave, onClose }) => {
-    // Local state for the modal - allows Cancel to work effectively
-    const [localSelection, setLocalSelection] = useState(new Set(initialSelection));
-
-    // If no specific selection was passed (undefined), it means ALL are selected by default
-    useEffect(() => {
-        if (!initialSelection || initialSelection.size === 0) {
-            setLocalSelection(new Set(group.links.map(l => l.interface)));
+    // 1. Initialize logic: if no previous selection, select ALL links (including new ones).
+    // 2. We use a key on the parent component to force re-mounting if data changes significantly,
+    //    but inside here, we also sync with 'group'.
+    
+    const [localSelection, setLocalSelection] = useState(() => {
+        // If the user has a saved selection, start with that.
+        if (initialSelection && initialSelection.size > 0) {
+            return new Set(initialSelection);
         }
-    }, [group, initialSelection]);
+        // Otherwise, select everything available in the group.
+        return new Set(group.links.map(l => l.interface));
+    });
+
+    // EFFECT: Watch for new links appearing in 'group' (e.g. from Full Scan)
+    useEffect(() => {
+        setLocalSelection(prev => {
+            const next = new Set(prev);
+            let changed = false;
+            group.links.forEach(l => {
+                // If a link exists in the group but is not selected...
+                // We generally want to AUTO-SELECT new links found by scan.
+                // However, we must be careful not to re-select links the user explicitly deselected.
+                // A simple heuristic: If the user has selected *some* links, we assume they are managing it.
+                // If the link is brand new (not in previous reference), we add it.
+                
+                if (!prev.has(l.interface)) {
+                    next.add(l.interface);
+                    changed = true;
+                }
+            });
+            return changed ? next : prev;
+        });
+    }, [group]); // This will fire when the passed 'group' prop updates
 
     const toggleLink = (iface) => {
         setLocalSelection(prev => {
@@ -96,6 +116,8 @@ const LinkSelectionModal = ({ group, initialSelection, onSave, onClose }) => {
                                 <div className="link-details">
                                     <span className="link-iface">{link.interface}</span>
                                     {link.bandwidth && <span className="link-bw">{link.bandwidth}</span>}
+                                    {/* Optional: Show small indicator if it's a full scan item */}
+                                    {link.isFullScan && <span style={{fontSize:'0.6rem', color:'orange', marginLeft:'5px'}}>(New)</span>}
                                 </div>
                             </li>
                         )
@@ -129,57 +151,117 @@ const NeighborsPopup = ({
   const [selectedDevices, setSelectedDevices] = useState(new Set()); 
   const [selectedLinks, setSelectedLinks] = useState(new Map()); 
   
-  // Track which group is currently being edited in the sub-popup
-  const [editingGroup, setEditingGroup] = useState(null); 
+  // FIX: Store ID instead of object to avoid stale state
+  const [editingGroupKey, setEditingGroupKey] = useState(null); 
   
   const { t } = useTranslation();
+
+  const getGroupKey = (group) => group.ip || group.hostname;
 
   useEffect(() => {
     if (isOpen) {
       setSearchTerm("");
       setSelectedDevices(new Set());
       setSelectedLinks(new Map());
-      setEditingGroup(null);
+      setEditingGroupKey(null);
     }
   }, [isOpen]);
 
-  // Escape key handler
   useEffect(() => {
     const handleEscape = (e) => {
         if (e.key === "Escape") {
-            // Priority: Close sub-popup first, then main popup
-            if (editingGroup) setEditingGroup(null);
+            if (editingGroupKey) setEditingGroupKey(null);
             else if (isOpen) onClose();
         }
     };
     if (isOpen) document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
-  }, [isOpen, onClose, editingGroup]);
+  }, [isOpen, onClose, editingGroupKey]);
 
+  // --- MERGING LOGIC ---
   const groupedNeighbors = useMemo(() => {
     const neighborMap = new Map();
+    
     neighbors.forEach(neighbor => {
-      const key = neighbor.ip || neighbor.hostname;
-      if (!neighborMap.has(key)) {
-        neighborMap.set(key, { ...neighbor, links: [neighbor] });
+      const deviceKey = neighbor.ip || neighbor.hostname;
+      
+      if (!neighborMap.has(deviceKey)) {
+        // New Device
+        neighborMap.set(deviceKey, { 
+            ...neighbor, 
+            links: [neighbor], 
+            isFullScan: neighbor.isFullScan || false 
+        });
       } else {
-        neighborMap.get(key).links.push(neighbor);
+        // Existing Device - Merge Interfaces
+        const existingGroup = neighborMap.get(deviceKey);
+        
+        const existingLinkIndex = existingGroup.links.findIndex(
+            l => l.interface === neighbor.interface
+        );
+
+        if (existingLinkIndex === -1) {
+            // Add NEW interface
+            existingGroup.links.push(neighbor);
+        } else {
+            // Update EXISTING interface
+            existingGroup.links[existingLinkIndex] = { 
+                ...existingGroup.links[existingLinkIndex], 
+                ...neighbor 
+            };
+        }
+        
+        // Update flags
+        if (neighbor.isFullScan) existingGroup.isFullScan = true; 
       }
     });
     return Array.from(neighborMap.values());
   }, [neighbors]);
 
-  const filteredNeighbors = useMemo(() => 
-    groupedNeighbors.filter(
-      (n) =>
-        n.hostname.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (n.ip && n.ip.toLowerCase().includes(searchTerm.toLowerCase()))
-    ), 
-  [groupedNeighbors, searchTerm]);
 
-  const getGroupKey = (group) => group.ip || group.hostname;
+  // --- SYNC SELECTION LOGIC ---
+  // Ensure selectedLinks map updates when new links appear in groupedNeighbors
+  useEffect(() => {
+      setSelectedLinks(prevLinks => {
+          const newLinksMap = new Map(prevLinks);
+          let hasChanges = false;
 
-  // --- SELECTION LOGIC ---
+          groupedNeighbors.forEach(group => {
+              const key = getGroupKey(group);
+              if (newLinksMap.has(key)) {
+                  const currentSet = newLinksMap.get(key);
+                  // Find links in the updated group that are NOT in the current selection set
+                  const missingLinks = group.links.filter(l => !currentSet.has(l.interface));
+                  
+                  if (missingLinks.length > 0) {
+                      const updatedSet = new Set(currentSet);
+                      missingLinks.forEach(l => updatedSet.add(l.interface));
+                      newLinksMap.set(key, updatedSet);
+                      hasChanges = true;
+                  }
+              }
+          });
+          return hasChanges ? newLinksMap : prevLinks;
+      });
+  }, [groupedNeighbors]);
+
+
+  // --- FILTER LOGIC ---
+  const filteredNeighbors = useMemo(() => {
+    const term = searchTerm.toLowerCase();
+    return groupedNeighbors.filter((n) => {
+        const matchesDevice = 
+            n.hostname.toLowerCase().includes(term) ||
+            (n.ip && n.ip.toLowerCase().includes(term));
+        const matchesInterface = n.links.some(l => 
+            l.interface && l.interface.toLowerCase().includes(term)
+        );
+        return matchesDevice || matchesInterface;
+    });
+  }, [groupedNeighbors, searchTerm]);
+
+
+  // --- SELECTION HELPERS ---
 
   const handleToggleDevice = (group) => {
     const key = getGroupKey(group);
@@ -190,10 +272,10 @@ const NeighborsPopup = ({
 
         if (newDevices.has(key)) {
             newDevices.delete(key);
-            newLinks.delete(key); // Clear link selection when device is unchecked
+            newLinks.delete(key); 
         } else {
             newDevices.add(key);
-            // Default: Select ALL links
+            // Default: Select all links
             newLinks.set(key, new Set(group.links.map(l => l.interface)));
         }
         
@@ -202,7 +284,6 @@ const NeighborsPopup = ({
     });
   };
 
-  // Called by the LinkSelectionModal when "Save" is clicked
   const handleSaveLinks = (group, newLinkSet) => {
       const key = getGroupKey(group);
       
@@ -212,41 +293,36 @@ const NeighborsPopup = ({
           return next;
       });
 
-      // If links were selected, ensure the device is checked
       if (newLinkSet.size > 0) {
           setSelectedDevices(prev => new Set(prev).add(key));
       } else {
-          // If user saved "0 links", deselect the device
           setSelectedDevices(prev => {
               const next = new Set(prev);
               next.delete(key);
               return next;
           });
       }
-
-      setEditingGroup(null); // Close modal
+      setEditingGroupKey(null);
   };
 
   const openLinkModal = (e, group) => {
       e.stopPropagation();
-      setEditingGroup(group);
+      // FIX: Store Key, not object
+      setEditingGroupKey(getGroupKey(group));
   };
-
-  // --- ADD LOGIC ---
 
   const handleAddSingleGroup = (e, group) => {
       e.stopPropagation();
       const key = getGroupKey(group);
-      
       let linksToAdd = [];
       const userSelectedLinks = selectedLinks.get(key);
 
+      // If selection exists, use it (it's auto-synced now). Else use all.
       if (userSelectedLinks && userSelectedLinks.size > 0) {
           linksToAdd = group.links.filter(l => userSelectedLinks.has(l.interface));
       } else {
-          linksToAdd = group.links; // Default all
+          linksToAdd = group.links; 
       }
-      
       onAddNeighbor({ ...group, links: linksToAdd });
   };
 
@@ -298,7 +374,6 @@ const NeighborsPopup = ({
           const isSelected = selectedDevices.has(key);
           const hasMultiple = group.links.length > 1;
           
-          // Count selected links for display
           const userSelectedLinks = selectedLinks.get(key);
           const selectedCount = userSelectedLinks ? userSelectedLinks.size : group.links.length;
           const isPartial = userSelectedLinks && userSelectedLinks.size < group.links.length;
@@ -309,7 +384,6 @@ const NeighborsPopup = ({
                     className={`neighbor-item ${isSelected ? 'selected' : ''}`}
                     onClick={() => handleToggleDevice(group)}
                 >
-                  
                   <div className="selection-checkbox">
                     {isSelected && <CheckIcon />}
                   </div>
@@ -318,6 +392,10 @@ const NeighborsPopup = ({
                     <strong>{group.hostname}</strong>
                     <small>{group.ip || ' '}</small>
                     
+                    <div className="neighbor-interfaces-list" style={{fontSize: '0.75rem', color:'#888', marginTop:'4px'}}>
+                        {group.links.map(l => l.interface).join(', ')}
+                    </div>
+
                     {hasMultiple && (
                         <button 
                             className={`link-count-badge ${isPartial ? 'partial' : ''}`} 
@@ -347,6 +425,11 @@ const NeighborsPopup = ({
   );
 
   if (!isOpen) return null;
+
+  // Derive the active group object from the KEY
+  const activeEditingGroup = editingGroupKey 
+      ? groupedNeighbors.find(g => getGroupKey(g) === editingGroupKey) 
+      : null;
 
   const regularNeighbors = filteredNeighbors.filter(n => !n.isFullScan);
   const fullScanNeighbors = filteredNeighbors.filter(n => n.isFullScan);
@@ -434,13 +517,14 @@ const NeighborsPopup = ({
         </div>
         </div>
 
-        {/* --- Render the Link Selection Modal on top if active --- */}
-        {editingGroup && (
+        {/* Modal Logic Updated: Use the dynamically derived group */}
+        {activeEditingGroup && (
             <LinkSelectionModal 
-                group={editingGroup}
-                initialSelection={selectedLinks.get(getGroupKey(editingGroup))}
+                key={`${getGroupKey(activeEditingGroup)}-${activeEditingGroup.links.length}`}
+                group={activeEditingGroup}
+                initialSelection={selectedLinks.get(getGroupKey(activeEditingGroup))}
                 onSave={handleSaveLinks}
-                onClose={() => setEditingGroup(null)}
+                onClose={() => setEditingGroupKey(null)}
             />
         )}
     </>

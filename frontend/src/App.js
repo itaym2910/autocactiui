@@ -61,6 +61,7 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
 
   // --- Popup Handlers ---
   const handleShowNeighborPopup = useCallback((neighbors, sourceNode) => {
+    // console.log("App.js: Updating Neighbor Popup", { count: neighbors.length, node: sourceNode?.data?.hostname });
     setNeighborPopup({ isOpen: true, neighbors, sourceNode });
   }, []);
 
@@ -93,13 +94,13 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
   }, [token]);
 
   // --- MAP INTERACTION HOOK ---
-  // FIXED: Restored 'handleShowNeighborPopup' so scanning works again
   const {
     nodes, setNodes, edges, setEdges, selectedElements, snapLines, currentNeighbors,
     onNodesChange, onNodeClick, onPaneClick, onSelectionChange, handleDeleteElements,
     handleUpdateNodeData, handleAddGroup, handleAddTextNode, createNodeObject,
-    resetMap, undo, redo, alignElements, distributeElements, bringForward, sendBackward,
-    bringToFront, sendToBack, selectAllByType, confirmNeighbor, handleFullScan,
+    resetMap, alignElements, distributeElements, bringForward, sendBackward,
+    bringToFront, sendToBack, selectAllByType, confirmNeighbor, 
+    // handleFullScan, // <--- Removed this to avoid the signature error
     setLoading: setMapHookLoading, setError: setMapHookError, setState: setMapState,
   } = useMapInteraction(theme, handleShowNeighborPopup);
 
@@ -178,34 +179,63 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
   }, [neighborPopup, confirmNeighbor, setIsLoading, setAppError, t]);
 
   // ==========================================
-  // NEW: UPLOAD LOGIC WITH POPUP
+  // NEW: LOCAL FULL SCAN HANDLER (FIX)
   // ==========================================
+  const handlePopupFullScan = async () => {
+    const node = neighborPopup.sourceNode;
+    if (!node) {
+        setAppError("No source node selected for scan");
+        return;
+    }
 
-  // 1. Opens the Popup (Triggered by Sidebar Button)
+    setIsLoading(true);
+    setAppError('');
+    
+    try {
+      // Direct API call to avoid hook signature mismatches.
+      // Assumes api.getFullDeviceNeighbors exists (mapping to Python's get_full_device_neighbors)
+      // If your apiService uses a different name, please verify it (e.g. api.getDeviceNeighbors(ip, true))
+      const response = await api.getFullDeviceNeighbors(node.id);
+      
+      if (response && response.data && response.data.neighbors) {
+         // Update the popup state with the new extended list
+         setNeighborPopup(prev => ({
+            ...prev,
+            neighbors: response.data.neighbors
+         }));
+      } else {
+         setAppError(t('app.noNeighborsFound'));
+      }
+    } catch (err) {
+      console.error("Full scan failed:", err);
+      setAppError(t('app.errorFullScan') || "Full scan failed");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ==========================================
+  // UPLOAD LOGIC
+  // ==========================================
   const handleOpenUploadPopup = () => {
     if (!reactFlowWrapper.current || nodes.length === 0) {
       setAppError(t('app.errorEmptyMap'));
       return;
     }
-    // Auto-select first group if none selected
     if (!selectedCactiGroupId && cactiGroups.length > 0) {
       setSelectedCactiGroupId(cactiGroups[0].id);
     }
     setShowUploadPopup(true);
   };
 
-  // 2. Performs Upload (Triggered by Popup Confirm)
   const handleConfirmUpload = async () => {
     setShowUploadPopup(false);
-
     if (!selectedCactiGroupId) {
       setAppError(t('app.errorSelectCacti') || "No server group selected.");
       return;
     }
-
     setIsUploading(true);
     setAppError('');
-
     try {
       const taskResponse = await handleUploadProcess({
         mapElement: reactFlowWrapper.current,
@@ -250,23 +280,15 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
     const mapElement = document.querySelector('.react-flow');
     if (!mapElement) { setAppError('Map element not found'); return; }
     setIsLoading(true);
-
-    // 1. SELECT ALL PATHS AND FORCE FILL="NONE" BEFORE CAPTURE
-    // This is a temporary safeguard for the export
     const paths = mapElement.querySelectorAll('.react-flow__edge-path');
-    paths.forEach(path => {
-      path.style.fill = 'none';
-    });
+    paths.forEach(path => { path.style.fill = 'none'; });
 
     const fileName = `${mapName || 'network-map'}.png`;
     const options = {
       backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff',
       pixelRatio: 2,
       filter: (node) => !['react-flow__controls', 'react-flow__minimap'].some(cls => node.classList && node.classList.contains(cls)),
-      // 2. ENSURE STYLE IS APPLIED DURING GENERATION
-      style: {
-        'fill': 'none'
-      }
+      style: { 'fill': 'none' }
     };
     try {
       const blob = await htmlToImage.toBlob(mapElement, options);
@@ -338,7 +360,7 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
       <div className="app-container">
         <Sidebar
           selectedElements={selectedElements}
-          onUploadMap={handleOpenUploadPopup} // Connected to Popup Opener
+          onUploadMap={handleOpenUploadPopup}
           onAddGroup={handleAddGroup}
           onAddTextNode={handleAddTextNode}
           onResetMap={resetMap}
@@ -410,21 +432,13 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
               </ReactFlowProvider>
             )}
 
-            {/* ... inside the return statement ... */}
-
             {showUploadPopup && (
               <div className="download-popup-overlay">
                 <div className="download-popup-content">
-
                   <div className="popup-header">
-                    <h3 className="popup-title">
-                      {t('modals.upload.title') || "Select Destination Group"}
-                    </h3>
-                    <p className="popup-description">
-                      {t('modals.upload.description')}
-                    </p>
+                    <h3 className="popup-title">{t('modals.upload.title') || "Select Destination Group"}</h3>
+                    <p className="popup-description">{t('modals.upload.description')}</p>
                   </div>
-
                   <div className="popup-body">
                     <div className="custom-select-wrapper">
                       <select
@@ -432,33 +446,17 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
                         value={selectedCactiGroupId}
                         onChange={(e) => setSelectedCactiGroupId(e.target.value)}
                       >
-                        {cactiGroups.length === 0 && (
-                          <option disabled>{t('modals.upload.loading')}</option>
-                        )}
+                        {cactiGroups.length === 0 && <option disabled>{t('modals.upload.loading')}</option>}
                         {cactiGroups.map((group) => (
-                          <option key={group.id} value={group.id}>
-                            {group.name}
-                          </option>
+                          <option key={group.id} value={group.id}>{group.name}</option>
                         ))}
                       </select>
                       <span className="custom-arrow"></span>
                     </div>
                   </div>
-
                   <div className="popup-footer">
-                    <button
-                      className="btn-cancel"
-                      onClick={() => setShowUploadPopup(false)}
-                    >
-                      {t('common.cancel')}
-                    </button>
-                    <button
-                      className="btn-confirm"
-                      onClick={handleConfirmUpload}
-                      disabled={!selectedCactiGroupId}
-                    >
-                      {t('modals.upload.confirm')}
-                    </button>
+                    <button className="btn-cancel" onClick={() => setShowUploadPopup(false)}>{t('common.cancel')}</button>
+                    <button className="btn-confirm" onClick={handleConfirmUpload} disabled={!selectedCactiGroupId}>{t('modals.upload.confirm')}</button>
                   </div>
                 </div>
               </div>
@@ -481,9 +479,7 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
             {error && <p className="error-message">{error}</p>}
 
             {(isUploading || mapInteractionLoading) && (
-              <p className="loading-message">
-                {isUploading ? t('app.processingMap') : t('app.loading')}
-              </p>
+              <p className="loading-message">{isUploading ? t('app.processingMap') : t('app.loading')}</p>
             )}
 
             <UploadSuccessPopup
@@ -492,6 +488,7 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
               onClose={() => setUploadSuccessData(null)}
             />
 
+            {/* --- UPDATED: Use local handler --- */}
             <NeighborsPopup
               isOpen={neighborPopup.isOpen}
               neighbors={neighborPopup.neighbors}
@@ -500,7 +497,7 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
               onAddSelectedNeighbors={handleAddSelectedNeighbors}
               onClose={() => setNeighborPopup(prev => ({ ...prev, isOpen: false }))}
               isLoading={mapInteractionLoading}
-              onFullScan={() => handleFullScan(setIsLoading, setAppError)}
+              onFullScan={handlePopupFullScan}
             />
 
             <AdminPanel
