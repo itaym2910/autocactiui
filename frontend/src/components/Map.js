@@ -1,4 +1,3 @@
-// frontend/src/components/Map.js
 import React, { useState, useRef, useCallback } from 'react';
 import ReactFlow, {
   Background,
@@ -8,7 +7,7 @@ import ReactFlow, {
   useViewport,
 } from 'react-flow-renderer';
 
-// --- SUB-COMPONENT: SELECTION BOX ---
+// --- SUB-COMPONENT: SELECTION BOX (No changes needed) ---
 const MarqueeSelection = ({ startPos, endPos }) => {
     if (!startPos || !endPos) return null;
 
@@ -27,7 +26,7 @@ const MarqueeSelection = ({ startPos, endPos }) => {
     return <div className="marquee-selection" style={style} />;
 };
 
-// --- SUB-COMPONENT: SNAP LINES ---
+// --- SUB-COMPONENT: SNAP LINES (No changes needed) ---
 const SnapLines = ({ lines }) => {
     const { zoom, x, y } = useViewport();
     if (!lines || !lines.length) return null;
@@ -84,7 +83,8 @@ const SnapLines = ({ lines }) => {
 };
 
 // --- MAIN COMPONENT ---
-const Map = ({ nodes, edges, onNodeClick, onNodesChange, onPaneClick, onSelectionChange, nodeTypes, theme, setReactFlowInstance, onNodeContextMenu, snapLines, onPaneContextMenu }) => {
+// STEP 1: Accept 'backgroundImageUrl' as a prop
+const Map = ({ nodes, edges, onNodeClick, onNodesChange, onPaneClick, onSelectionChange, nodeTypes, theme, setReactFlowInstance, onNodeContextMenu, snapLines, onPaneContextMenu, backgroundImageUrl }) => {
   
   const [marqueeStart, setMarqueeStart] = useState(null);
   const [marqueeEnd, setMarqueeEnd] = useState(null);
@@ -95,6 +95,19 @@ const Map = ({ nodes, edges, onNodeClick, onNodesChange, onPaneClick, onSelectio
 
   if (setReactFlowInstance) {
     setReactFlowInstance(reactFlowInstance);
+  }
+
+  // --- STEP 2: Create the dynamic style object for the main container ---
+  const containerStyle = {
+    width: '100%',
+    height: '100%',
+  };
+
+  // If a URL is provided, add the background image properties to the style
+  if (backgroundImageUrl) {
+    containerStyle.backgroundImage = `url(${backgroundImageUrl})`;
+    containerStyle.backgroundSize = 'cover';
+    containerStyle.backgroundPosition = 'center';
   }
 
   const minimapNodeColor = (node) => {
@@ -110,31 +123,25 @@ const Map = ({ nodes, edges, onNodeClick, onNodesChange, onPaneClick, onSelectio
     }
   };
 
-  // --- 1. MOUSE DOWN: Start Selection on Middle Click ---
+  // --- MOUSE HANDLERS (No changes needed in this logic) ---
   const handlePaneMouseDown = (event) => {
-      // Button 1 is Middle Mouse; Button 0 is Left Mouse
       if (event.button === 1) {
           event.preventDefault(); 
           event.stopPropagation();
-
           if (event.target.closest('.react-flow__controls')) return;
-
           const mapBounds = mapRef.current.getBoundingClientRect();
           const pos = {
               x: event.clientX - mapBounds.left,
               y: event.clientY - mapBounds.top,
           };
-
           setMarqueeStart(pos);
           setMarqueeEnd(pos);
           setIsSelecting(true);
       }
   };
 
-  // --- 2. MOUSE MOVE: Update Box Size ---
   const handlePaneMouseMove = (event) => {
       if (!isSelecting || !marqueeStart) return;
-      
       const mapBounds = mapRef.current.getBoundingClientRect();
       setMarqueeEnd({
           x: event.clientX - mapBounds.left,
@@ -142,25 +149,16 @@ const Map = ({ nodes, edges, onNodeClick, onNodesChange, onPaneClick, onSelectio
       });
   };
   
-  // --- 3. MOUSE UP: Calculate Selection & Handle Deselection ---
   const handlePaneMouseUp = useCallback((event) => {
-      // A. STANDARD CLICK (Not Selecting)
       if (!isSelecting) {
-        // If left clicking on empty pane, deselect all nodes
         if (event.button === 0 && !event.target.closest('.react-flow__node') && !event.target.closest('.react-flow__edge')) {
-             
-             // 1. Update React Flow internal state to deselect everything
              reactFlowInstance.setNodes((prevNodes) => 
                 prevNodes.map(n => ({ ...n, selected: false }))
              );
-
-             // 2. Trigger prop callback
              if(onPaneClick) onPaneClick(event);
         }
         return;
       }
-
-      // B. MARQUEE SELECTION END
       if (marqueeStart && marqueeEnd) {
           const selectionRect = {
               x: Math.min(marqueeStart.x, marqueeEnd.x),
@@ -168,73 +166,55 @@ const Map = ({ nodes, edges, onNodeClick, onNodesChange, onPaneClick, onSelectio
               width: Math.abs(marqueeStart.x - marqueeEnd.x),
               height: Math.abs(marqueeStart.y - marqueeEnd.y),
           };
-
           if (selectionRect.width >= 5 || selectionRect.height >= 5) {
-              
               const startGraphPos = reactFlowInstance.project({ x: selectionRect.x, y: selectionRect.y });
               const endGraphPos = reactFlowInstance.project({ x: selectionRect.x + selectionRect.width, y: selectionRect.y + selectionRect.height });
-
               const graphBox = {
                   x: Math.min(startGraphPos.x, endGraphPos.x),
                   y: Math.min(startGraphPos.y, endGraphPos.y),
                   x2: Math.max(startGraphPos.x, endGraphPos.x),
                   y2: Math.max(startGraphPos.y, endGraphPos.y),
               };
-
-              // Identify IDs of nodes intersecting the selection box
               const selectedIds = new Set();
-              
               const selectedNodes = reactFlowInstance.getNodes().filter(node => {
                   if (!node.position || node.hidden) return false;
                   const nodeWidth = node.width || 150;
                   const nodeHeight = node.height || 50;
-
                   const isSelected = (
                       node.position.x < graphBox.x2 &&
                       node.position.x + nodeWidth > graphBox.x &&
                       node.position.y < graphBox.y2 &&
                       node.position.y + nodeHeight > graphBox.y
                   );
-
                   if (isSelected) selectedIds.add(node.id);
                   return isSelected;
               });
-
-              // CRITICAL: Update React Flow state to set 'selected: true'
-              // This enables the "move together" feature
               reactFlowInstance.setNodes((prevNodes) => 
-                prevNodes.map((node) => ({
-                    ...node,
-                    selected: selectedIds.has(node.id)
-                }))
+                prevNodes.map((node) => ({ ...node, selected: selectedIds.has(node.id) }))
               );
-              
               if(onSelectionChange) {
                   onSelectionChange({ nodes: selectedNodes, edges: [] });
               }
           }
       }
-
-      // Reset State
       setMarqueeStart(null);
       setMarqueeEnd(null);
       setIsSelecting(false);
-      
   }, [marqueeStart, marqueeEnd, isSelecting, reactFlowInstance, onSelectionChange, onPaneClick]);
 
   const handleNodeMouseUp = (event) => {
-    // Prevent pane click from firing when releasing on a node
     event.stopPropagation();
   };
 
   return (
+    // --- STEP 3: Apply the dynamic style to this container div ---
     <div 
         className="map-view"
         ref={mapRef}
         onMouseDown={handlePaneMouseDown}
         onMouseMove={handlePaneMouseMove}
         onMouseUp={handlePaneMouseUp}
-        style={{ width: '100%', height: '100%' }} 
+        style={containerStyle} 
     >
       <ReactFlow
         nodes={nodes}
@@ -244,20 +224,19 @@ const Map = ({ nodes, edges, onNodeClick, onNodesChange, onPaneClick, onSelectio
         onNodesChange={onNodesChange}
         onNodeContextMenu={onNodeContextMenu}
         onPaneContextMenu={onPaneContextMenu}
-        // We handle pane clicks manually in handlePaneMouseUp
         onPaneClick={undefined} 
         onSelectionChange={onSelectionChange}
         nodeTypes={nodeTypes}
         fitView
-        // Allow drag selection via standard library (if needed), or disable if you strictly want middle click
-        // To allow multi-drag, selectNodesOnDrag must not be false if relying on native selection, 
-        // but since we manually set `selected: true`, this will work.
         selectNodesOnDrag={false}
         panOnDrag={[0, 2]} 
       >
         <MiniMap nodeColor={minimapNodeColor} />
         <Controls />
-        <Background color={theme === 'dark' ? '#404040' : '#ddd'} gap={24} />
+        
+        {/* --- STEP 4: Conditionally render the dot pattern background --- */}
+        {!backgroundImageUrl && <Background color={theme === 'dark' ? '#404040' : '#ddd'} gap={24} />}
+        
         <SnapLines lines={snapLines} />
       </ReactFlow>
       

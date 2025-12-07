@@ -97,7 +97,7 @@ const calculateBoundsAndTransform = (nodes) => {
  * @param {object} params - The export parameters.
  * @returns {Promise<object>} The API response from starting the task.
  */
-export const exportAndUploadMap = async ({ mapElement, nodes, edges, mapName, cactiGroupId, theme, scaleFactor }) => {
+export const exportAndUploadMap = async ({ mapElement, nodes, edges, mapName, cactiGroupId, theme, scaleFactor, backgroundImageUrl }) => {
     const viewport = mapElement.querySelector('.react-flow__viewport');
     if (!viewport) {
         throw new Error('Could not find map viewport for export.');
@@ -107,13 +107,22 @@ export const exportAndUploadMap = async ({ mapElement, nodes, edges, mapName, ca
     const originalTransform = viewport.style.transform;
     viewport.style.transform = transform; 
 
-    const backgroundColor = theme === 'dark' ? '#18191a' : '#ffffff';
+    // If a custom image is provided, we set background to null so the CSS style takes over.
+    // Otherwise, we use the theme color.
+    const backgroundColor = backgroundImageUrl ? null : (theme === 'dark' ? '#18191a' : '#ffffff');
 
     try {
         const blob = await toBlob(viewport, {
             width: width,
             height: height,
             backgroundColor: backgroundColor,
+            // If backgroundImageUrl exists, inject CSS to display it
+            style: backgroundImageUrl ? {
+                backgroundImage: `url(${backgroundImageUrl})`,
+                backgroundSize: '100% 100%', // Stretch to fit the calculated map bounds
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+            } : {},
             filter: (node) => (node.className !== 'react-flow__controls'),
         });
 
@@ -169,7 +178,7 @@ export const exportAndUploadMap = async ({ mapElement, nodes, edges, mapName, ca
  * @param {object} params - The export parameters, plus state setters.
  * @returns {Promise<string>} A promise that resolves with the task ID.
  */
-export const handleUploadProcess = async ({ mapElement, nodes, edges, mapName, cactiGroupId, theme, setNodes, setEdges }) => {
+export const handleUploadProcess = async ({ mapElement, nodes, edges, mapName, cactiGroupId, theme, setNodes, setEdges, backgroundImageUrl }) => {
     const originalNodes = [...nodes];
     const originalEdges = [...edges];
 
@@ -194,7 +203,16 @@ export const handleUploadProcess = async ({ mapElement, nodes, edges, mapName, c
     
     try {
         // Perform the export and get the initial task response.
-        const response = await exportAndUploadMap({ mapElement, nodes: exportNodes, edges: finalEdges, mapName, cactiGroupId, theme, scaleFactor });
+        const response = await exportAndUploadMap({ 
+            mapElement, 
+            nodes: exportNodes, 
+            edges: finalEdges, 
+            mapName, 
+            cactiGroupId, 
+            theme, 
+            scaleFactor,
+            backgroundImageUrl // Pass the image URL down
+        });
         return response.data;
     } finally {
         // Restore the UI to its original state.

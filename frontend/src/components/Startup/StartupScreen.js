@@ -1,4 +1,3 @@
-// frontend/src/components/Startup/StartupScreen.js
 import React, { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { INITIAL_ICON_NAME } from '../../config/constants';
@@ -6,13 +5,16 @@ import { INITIAL_ICON_NAME } from '../../config/constants';
 const StartupScreen = ({ onStart, isLoading, availableIcons, onImportConfig }) => {
     const initialIpRef = useRef(null);
     const importInputRef = useRef(null);
+    const backgroundImageInputRef = useRef(null);
     const [initialIconName, setInitialIconName] = useState(INITIAL_ICON_NAME);
+    const [backgroundImage, setBackgroundImage] = useState(null);
     const { t } = useTranslation();
 
     const handleSubmit = (e) => {
         e.preventDefault();
         if (initialIpRef.current) {
-            onStart(initialIpRef.current.value, initialIconName);
+            // Pass the background image URL (if it exists) as the third argument
+            onStart(initialIpRef.current.value, initialIconName, backgroundImage?.url);
         }
     };
 
@@ -25,8 +27,27 @@ const StartupScreen = ({ onStart, isLoading, availableIcons, onImportConfig }) =
         if (file) {
             onImportConfig(file);
         }
-        // Reset the input value to allow importing the same file again
         event.target.value = null;
+    };
+
+    const handleBackgroundImageClick = () => {
+        backgroundImageInputRef.current.click();
+    };
+
+    const handleBackgroundImageImport = (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            const imageUrl = URL.createObjectURL(file);
+            setBackgroundImage({ file, url: imageUrl });
+        }
+        event.target.value = null;
+    };
+    
+    const clearBackgroundImage = () => {
+        if (backgroundImage) {
+            URL.revokeObjectURL(backgroundImage.url); // Clean up memory
+        }
+        setBackgroundImage(null);
     };
 
     return (
@@ -59,6 +80,26 @@ const StartupScreen = ({ onStart, isLoading, availableIcons, onImportConfig }) =
                 </form>
 
                 <div className="startup-separator">{t('startup.or')}</div>
+                
+                <input
+                    type="file"
+                    ref={backgroundImageInputRef}
+                    onChange={handleBackgroundImageImport}
+                    style={{ display: 'none' }}
+                    accept="image/png, image/jpeg"
+                />
+                <button type="button" onClick={handleBackgroundImageClick} className="secondary" disabled={isLoading}>
+                    {t('startup.chooseBackgroundImage', 'Choose Background Image')}
+                </button>
+                
+                {backgroundImage && (
+                    <div style={{ textAlign: 'center', marginTop: '10px', fontSize: '0.9em' }}>
+                        <span>{backgroundImage.file.name}</span>
+                        <button onClick={clearBackgroundImage} style={{ marginLeft: '10px', cursor: 'pointer', background: 'transparent', border: 'none', color: 'red', fontWeight: 'bold' }}>X</button>
+                    </div>
+                )}
+                
+                <div className="startup-separator"></div>
 
                 <input
                     type="file"
