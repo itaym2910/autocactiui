@@ -407,8 +407,8 @@ button:disabled { background-color: var(--accent-secondary); cursor: not-allowed
 .map-view {
   width: 100%;
   height: 100%;
-  background-color: var(--map-bg);
-  direction: ltr; /* Ensures the map canvas and its controls remain LTR regardless of page direction */
+  background-color: transparent; /* <--- CHANGED TO TRANSPARENT */
+  direction: ltr;
   position: relative;
 }
 .react-flow__attribution { display: none; }
@@ -1135,6 +1135,10 @@ button.danger {
   fill: none !important;
 }
 
+/* --- FORCE TRANSPARENCY FOR BACKGROUND IMAGE --- */
+.react-flow, .react-flow__pane, .react-flow__viewport {
+  background-color: transparent !important;
+}
 
 /* Animations */
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }

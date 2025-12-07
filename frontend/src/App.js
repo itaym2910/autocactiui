@@ -38,10 +38,16 @@ export const NodeContext = React.createContext(null);
 // ==========================================
 // DASHBOARD COMPONENT
 // ==========================================
+// ==========================================
+// DASHBOARD COMPONENT
+// ==========================================
 const Dashboard = ({ token, currentUser, onLogout }) => {
   const [error, setError] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [mapName, setMapName] = useState('My-Network-Map');
+
+  // --- 1. NEW STATE FOR BACKGROUND IMAGE ---
+  const [mapBackground, setMapBackground] = useState(null); // <--- NEW CODE
 
   // UI State
   const [contextMenu, setContextMenu] = useState(null);
@@ -61,7 +67,6 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
 
   // --- Popup Handlers ---
   const handleShowNeighborPopup = useCallback((neighbors, sourceNode) => {
-    // console.log("App.js: Updating Neighbor Popup", { count: neighbors.length, node: sourceNode?.data?.hostname });
     setNeighborPopup({ isOpen: true, neighbors, sourceNode });
   }, []);
 
@@ -99,8 +104,7 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
     onNodesChange, onNodeClick, onPaneClick, onSelectionChange, handleDeleteElements,
     handleUpdateNodeData, handleAddGroup, handleAddTextNode, createNodeObject,
     resetMap, alignElements, distributeElements, bringForward, sendBackward,
-    bringToFront, sendToBack, selectAllByType, confirmNeighbor, 
-    // handleFullScan, // <--- Removed this to avoid the signature error
+    bringToFront, sendToBack, selectAllByType, confirmNeighbor,
     setLoading: setMapHookLoading, setError: setMapHookError, setState: setMapState,
   } = useMapInteraction(theme, handleShowNeighborPopup);
 
@@ -131,6 +135,22 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
     setMapHookError(message);
     if (message) setTimeout(() => setError(''), 5000);
   }, [setMapHookError]);
+
+  // --- 2. NEW HANDLER FOR BACKGROUND UPLOAD ---
+  const handleBackgroundImageUpload = useCallback((file) => {
+    console.log("File received:", file); // <--- Add this log
+    if (file) {
+      const objectUrl = URL.createObjectURL(file);
+      console.log("Generated URL:", objectUrl); // <--- Add this log
+      setMapBackground(objectUrl);
+    }
+  }, []);
+
+  // --- 3. WRAPPER FOR RESET (To clear background too) ---
+  const handleResetMapAndBackground = useCallback(() => { // <--- NEW CODE
+    resetMap();
+    setMapBackground(null);
+  }, [resetMap]);
 
   // --- Effects ---
   useEffect(() => {
@@ -178,33 +198,24 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
     }
   }, [neighborPopup, confirmNeighbor, setIsLoading, setAppError, t]);
 
-  // ==========================================
-  // NEW: LOCAL FULL SCAN HANDLER (FIX)
-  // ==========================================
+  // Local Full Scan Handler
   const handlePopupFullScan = async () => {
     const node = neighborPopup.sourceNode;
     if (!node) {
-        setAppError("No source node selected for scan");
-        return;
+      setAppError("No source node selected for scan");
+      return;
     }
-
     setIsLoading(true);
     setAppError('');
-    
     try {
-      // Direct API call to avoid hook signature mismatches.
-      // Assumes api.getFullDeviceNeighbors exists (mapping to Python's get_full_device_neighbors)
-      // If your apiService uses a different name, please verify it (e.g. api.getDeviceNeighbors(ip, true))
       const response = await api.getFullDeviceNeighbors(node.id);
-      
       if (response && response.data && response.data.neighbors) {
-         // Update the popup state with the new extended list
-         setNeighborPopup(prev => ({
-            ...prev,
-            neighbors: response.data.neighbors
-         }));
+        setNeighborPopup(prev => ({
+          ...prev,
+          neighbors: response.data.neighbors
+        }));
       } else {
-         setAppError(t('app.noNeighborsFound'));
+        setAppError(t('app.noNeighborsFound'));
       }
     } catch (err) {
       console.error("Full scan failed:", err);
@@ -214,9 +225,7 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
     }
   };
 
-  // ==========================================
-  // UPLOAD LOGIC
-  // ==========================================
+  // Upload Logic
   const handleOpenUploadPopup = () => {
     if (!reactFlowWrapper.current || nodes.length === 0) {
       setAppError(t('app.errorEmptyMap'));
@@ -256,7 +265,7 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
     }
   };
 
-  // --- Download Handlers ---
+  // Download Handlers
   const handleDownloadConfig = useCallback(async () => {
     const dataStr = JSON.stringify({ nodes, edges, mapName }, null, 2);
     const fileName = `${mapName || 'network-map'}.json`;
@@ -331,7 +340,7 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
     }
   }, [setMapState, t]);
 
-  // --- Click Handlers ---
+  // Click Handlers
   const onNodeClickHandler = useCallback((event, node) => {
     setContextMenu(null);
     onNodeClick(event, node, setIsLoading, setAppError);
@@ -363,7 +372,12 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
           onUploadMap={handleOpenUploadPopup}
           onAddGroup={handleAddGroup}
           onAddTextNode={handleAddTextNode}
-          onResetMap={resetMap}
+
+          // --- 4. PASS NEW PROPS TO SIDEBAR ---
+          onResetMap={handleResetMapAndBackground} // <--- CHANGED from resetMap to new wrapper
+          onBackgroundImageUpload={handleBackgroundImageUpload} // <--- NEW CODE
+          // ------------------------------------
+
           onLogout={onLogout}
           availableIcons={availableIcons}
           mapName={mapName}
@@ -403,7 +417,24 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
             theme={theme}
             toggleTheme={toggleTheme}
           />
-          <div className='map-container'>
+
+          {/* --- 5. ADD BACKGROUND IMAGE STYLE HERE --- */}
+
+          <div
+            className='map-container'
+            style={{
+              // 1. If image exists, use it.
+              backgroundImage: mapBackground ? `url(${mapBackground})` : 'none',
+
+              // 2. Formatting
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+              backgroundColor: mapBackground ? 'transparent' : (theme === 'dark' ? '#1a192b' : '#ffffff')
+            }}
+          >
+            {/* ------------------------------------------ */}
+
             {nodes.length === 0 ? (
               <div className="startup-wrapper">
                 <StartupScreen
@@ -488,7 +519,6 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
               onClose={() => setUploadSuccessData(null)}
             />
 
-            {/* --- UPDATED: Use local handler --- */}
             <NeighborsPopup
               isOpen={neighborPopup.isOpen}
               neighbors={neighborPopup.neighbors}

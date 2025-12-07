@@ -35,6 +35,7 @@ const Sidebar = ({
   onDownloadPng,
   currentUser,
   onOpenAdmin, 
+  onBackgroundImageUpload // <--- 1. ADD THIS HERE
 }) => {
   const { t } = useTranslation();
   const { onUpdateNodeData } = useContext(NodeContext);
@@ -105,14 +106,14 @@ const Sidebar = ({
 
       {/* 1. TOP SECTION: Map Controls (Upload/Name) */}
       {!isViewer && (
-        // Added wrapper class "action-buttons-green" to target buttons inside MapExportControls
         <div className="action-buttons-green">
             <MapExportControls
-            mapName={mapName}
-            setMapName={setMapName}
-            onUploadMap={onUploadMap}
-            isUploading={isUploading}
-            isMapStarted={isMapStarted}
+              mapName={mapName}
+              setMapName={setMapName}
+              onUploadMap={onUploadMap}
+              isUploading={isUploading}
+              isMapStarted={isMapStarted}
+              onBackgroundImageUpload={onBackgroundImageUpload} // <--- 2. ADD THIS HERE
             />
         </div>
       )}
@@ -146,7 +147,6 @@ const Sidebar = ({
            <div className="control-group">
               <label>{t('sidebar.mapActions')}</label>
               
-              {/* REMOVED className="secondary" -> Defaults to Primary (Blue) */}
               <button 
                 onClick={() => setShowDownloadPopup(true)} 
                 disabled={!isMapStarted} 
