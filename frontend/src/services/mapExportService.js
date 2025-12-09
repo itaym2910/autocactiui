@@ -36,34 +36,10 @@ const loadImage = (src) => {
 };
 
 /**
- * Helper: Smartly draws an image to COVER the canvas area.
- */
-const drawImageProp = (ctx, img, x, y, w, h, offsetX, offsetY) => {
-    offsetX = typeof offsetX === "number" ? offsetX : 0.5;
-    offsetY = typeof offsetY === "number" ? offsetY : 0.5;
-
-    if (offsetX < 0) offsetX = 0;
-    if (offsetY < 0) offsetY = 0;
-    if (offsetX > 1) offsetX = 1;
-    if (offsetY > 1) offsetY = 1;
-
-    var iw = img.width,
-        ih = img.height;
-
-    // Scale logic: Cover the area completely
-    var scale = Math.max(w / iw, h / ih);
-    
-    var nw = iw * scale;
-    var nh = ih * scale;
-
-    const dx = (w - nw) * offsetX;
-    const dy = (h - nh) * offsetY;
-
-    ctx.drawImage(img, x + dx, y + dy, nw, nh);
-};
-
-/**
  * Combines the background and the map using Canvas Layering.
+ * Draws background at its ORIGINAL size (1:1 pixel mapping), centered.
+ * If the background is larger than the canvas, it will be cropped.
+ * If smaller, it will be centered with white space around it.
  */
 const combineBackgroundAndMap = async (mapBlob, backgroundUrl, width, height) => {
     const canvas = document.createElement('canvas');
@@ -71,25 +47,31 @@ const combineBackgroundAndMap = async (mapBlob, backgroundUrl, width, height) =>
     canvas.height = height;
     const ctx = canvas.getContext('2d');
 
+    // Fill with white background first
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, width, height);
+
     try {
         if (backgroundUrl) {
             const base64Bg = await blobToDataURL(backgroundUrl);
             if (base64Bg) {
                 const bgImg = await loadImage(base64Bg);
-                // Draw background centered, cropping edges to fit the exact map size
-                drawImageProp(ctx, bgImg, 0, 0, width, height, 0.5, 0.5);
-            } else {
-                ctx.fillStyle = "#ffffff";
-                ctx.fillRect(0, 0, width, height);
+                
+                // Draw at original size (1:1 pixel mapping)
+                // Center the image in the canvas
+                const bgWidth = bgImg.naturalWidth;
+                const bgHeight = bgImg.naturalHeight;
+                
+                // Calculate position to center the image
+                const x = (width - bgWidth) / 2;
+                const y = (height - bgHeight) / 2;
+                
+                // Draw the image at its original size
+                ctx.drawImage(bgImg, x, y, bgWidth, bgHeight);
             }
-        } else {
-            ctx.fillStyle = "#ffffff";
-            ctx.fillRect(0, 0, width, height);
         }
     } catch (err) {
         console.error("Error drawing background:", err);
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, width, height);
     }
 
     try {
@@ -130,8 +112,6 @@ const prepareElementsForExport = (nodes, theme) => {
 const calculateBoundsAndTransform = (nodes) => {
     const padding = 50; 
     
-    // === CHANGE: Removed 800px/600px limits ===
-    // This allows the map to be tall and thin (like Israel) without adding side bars.
     const MIN_WIDTH = 100; 
     const MIN_HEIGHT = 100;
 
