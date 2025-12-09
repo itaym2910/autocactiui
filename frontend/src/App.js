@@ -42,6 +42,9 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
   const [error, setError] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [mapName, setMapName] = useState('My-Network-Map');
+  
+  // This state holds the blob URL of the background image
+  const [backgroundImage, setBackgroundImage] = useState(null);
 
   // UI State
   const [contextMenu, setContextMenu] = useState(null);
@@ -61,7 +64,6 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
 
   // --- Popup Handlers ---
   const handleShowNeighborPopup = useCallback((neighbors, sourceNode) => {
-    // console.log("App.js: Updating Neighbor Popup", { count: neighbors.length, node: sourceNode?.data?.hostname });
     setNeighborPopup({ isOpen: true, neighbors, sourceNode });
   }, []);
 
@@ -99,8 +101,7 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
     onNodesChange, onNodeClick, onPaneClick, onSelectionChange, handleDeleteElements,
     handleUpdateNodeData, handleAddGroup, handleAddTextNode, createNodeObject,
     resetMap, alignElements, distributeElements, bringForward, sendBackward,
-    bringToFront, sendToBack, selectAllByType, confirmNeighbor, 
-    // handleFullScan, // <--- Removed this to avoid the signature error
+    bringToFront, sendToBack, selectAllByType, confirmNeighbor,
     setLoading: setMapHookLoading, setError: setMapHookError, setState: setMapState,
   } = useMapInteraction(theme, handleShowNeighborPopup);
 
@@ -113,10 +114,6 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
   );
   const availableNeighbors = useMemo(() => {
     if (!selectedCustomNode) return [];
-    const existingConnections = new Set(
-      edges.filter(e => e.source === selectedCustomNode.id || e.target === selectedCustomNode.id)
-        .map(e => e.target)
-    );
     return currentNeighbors.filter(n => !nodes.some(node => node.id === n.ip));
   }, [selectedCustomNode, currentNeighbors, nodes, edges]);
 
@@ -178,33 +175,20 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
     }
   }, [neighborPopup, confirmNeighbor, setIsLoading, setAppError, t]);
 
-  // ==========================================
-  // NEW: LOCAL FULL SCAN HANDLER (FIX)
-  // ==========================================
   const handlePopupFullScan = async () => {
     const node = neighborPopup.sourceNode;
     if (!node) {
-        setAppError("No source node selected for scan");
-        return;
+      setAppError("No source node selected for scan");
+      return;
     }
-
     setIsLoading(true);
     setAppError('');
-    
     try {
-      // Direct API call to avoid hook signature mismatches.
-      // Assumes api.getFullDeviceNeighbors exists (mapping to Python's get_full_device_neighbors)
-      // If your apiService uses a different name, please verify it (e.g. api.getDeviceNeighbors(ip, true))
       const response = await api.getFullDeviceNeighbors(node.id);
-      
       if (response && response.data && response.data.neighbors) {
-         // Update the popup state with the new extended list
-         setNeighborPopup(prev => ({
-            ...prev,
-            neighbors: response.data.neighbors
-         }));
+        setNeighborPopup(prev => ({ ...prev, neighbors: response.data.neighbors }));
       } else {
-         setAppError(t('app.noNeighborsFound'));
+        setAppError(t('app.noNeighborsFound'));
       }
     } catch (err) {
       console.error("Full scan failed:", err);
@@ -228,6 +212,7 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
     setShowUploadPopup(true);
   };
 
+  // --- FIXED UPLOAD HANDLER ---
   const handleConfirmUpload = async () => {
     setShowUploadPopup(false);
     if (!selectedCactiGroupId) {
@@ -245,7 +230,9 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
         cactiGroupId: selectedCactiGroupId,
         theme,
         setNodes,
-        setEdges
+        setEdges,
+        // === ADDED THIS LINE ===
+        backgroundImageUrl: backgroundImage
       });
       setUploadSuccessData(taskResponse);
       setMapName('My-Network-Map');
@@ -370,6 +357,7 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
           setMapName={setMapName}
           isMapStarted={nodes.length > 0}
           isUploading={isUploading}
+          onUploadBackground={setBackgroundImage}
 
           selectAllByType={selectAllByType}
           onDeleteElements={handleDeleteElements}
@@ -428,6 +416,7 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
                   nodeTypes={nodeTypes}
                   theme={theme}
                   setReactFlowInstance={(instance) => (reactFlowInstance.current = instance)}
+                  backgroundImage={backgroundImage}
                 />
               </ReactFlowProvider>
             )}
@@ -488,7 +477,6 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
               onClose={() => setUploadSuccessData(null)}
             />
 
-            {/* --- UPDATED: Use local handler --- */}
             <NeighborsPopup
               isOpen={neighborPopup.isOpen}
               neighbors={neighborPopup.neighbors}
