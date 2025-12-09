@@ -10,73 +10,73 @@ import ReactFlow, {
 
 // --- SELECTION BOX ---
 const MarqueeSelection = ({ startPos, endPos }) => {
-    if (!startPos || !endPos) return null;
+  if (!startPos || !endPos) return null;
 
-    const style = {
-        position: 'absolute',
-        left: Math.min(startPos.x, endPos.x),
-        top: Math.min(startPos.y, endPos.y),
-        width: Math.abs(startPos.x - endPos.x),
-        height: Math.abs(startPos.y - endPos.y),
-        border: '1px solid #007bff',
-        backgroundColor: 'rgba(0, 123, 255, 0.2)',
-        pointerEvents: 'none',
-        zIndex: 9999,
-    };
+  const style = {
+    position: 'absolute',
+    left: Math.min(startPos.x, endPos.x),
+    top: Math.min(startPos.y, endPos.y),
+    width: Math.abs(startPos.x - endPos.x),
+    height: Math.abs(startPos.y - endPos.y),
+    border: '1px solid #007bff',
+    backgroundColor: 'rgba(0, 123, 255, 0.2)',
+    pointerEvents: 'none',
+    zIndex: 9999,
+  };
 
-    return <div style={style} />;
+  return <div style={style} />;
 };
 
 // --- SNAP LINES ---
 const SnapLines = ({ lines }) => {
-    const { zoom, x, y } = useViewport();
-    if (!lines || !lines.length) return null;
+  const { zoom, x, y } = useViewport();
+  if (!lines || !lines.length) return null;
 
-    return (
-        <>
-            {lines.map((line, i) => {
-                if (line.type === 'vertical') {
-                    const screenX = line.x * zoom + x;
-                    const screenY1 = line.y1 * zoom + y;
-                    const screenY2 = line.y2 * zoom + y;
-                    return (
-                        <div
-                            key={i}
-                            style={{
-                                position: 'absolute',
-                                left: screenX,
-                                top: Math.min(screenY1, screenY2),
-                                height: Math.abs(screenY2 - screenY1),
-                                width: '1px',
-                                backgroundColor: 'var(--accent-primary, #ff0072)',
-                                zIndex: 1000,
-                                pointerEvents: 'none',
-                            }}
-                        />
-                    );
-                } else {
-                    const screenY = line.y * zoom + y;
-                    const screenX1 = line.x1 * zoom + x;
-                    const screenX2 = line.x2 * zoom + x;
-                    return (
-                        <div
-                            key={i}
-                            style={{
-                                position: 'absolute',
-                                top: screenY,
-                                left: Math.min(screenX1, screenX2),
-                                width: Math.abs(screenX2 - screenX1),
-                                height: '1px',
-                                backgroundColor: 'var(--accent-primary, #ff0072)',
-                                zIndex: 1000,
-                                pointerEvents: 'none',
-                            }}
-                        />
-                    );
-                }
-            })}
-        </>
-    );
+  return (
+    <>
+      {lines.map((line, i) => {
+        if (line.type === 'vertical') {
+          const screenX = line.x * zoom + x;
+          const screenY1 = line.y1 * zoom + y;
+          const screenY2 = line.y2 * zoom + y;
+          return (
+            <div
+              key={i}
+              style={{
+                position: 'absolute',
+                left: screenX,
+                top: Math.min(screenY1, screenY2),
+                height: Math.abs(screenY2 - screenY1),
+                width: '1px',
+                backgroundColor: 'var(--accent-primary, #ff0072)',
+                zIndex: 1000,
+                pointerEvents: 'none',
+              }}
+            />
+          );
+        } else {
+          const screenY = line.y * zoom + y;
+          const screenX1 = line.x1 * zoom + x;
+          const screenX2 = line.x2 * zoom + x;
+          return (
+            <div
+              key={i}
+              style={{
+                position: 'absolute',
+                top: screenY,
+                left: Math.min(screenX1, screenX2),
+                width: Math.abs(screenX2 - screenX1),
+                height: '1px',
+                backgroundColor: 'var(--accent-primary, #ff0072)',
+                zIndex: 1000,
+                pointerEvents: 'none',
+              }}
+            />
+          );
+        }
+      })}
+    </>
+  );
 };
 
 // --- MAIN COMPONENT ---
@@ -235,7 +235,8 @@ const Map = ({
         height: '100%',
         position: 'relative',
         backgroundImage: backgroundImage ? `url(${backgroundImage})` : undefined,
-        backgroundSize: 'cover',
+        // CHANGED: Now using fixed size instead of cover
+        backgroundSize: '1920px 1080px',  // Match the standardized size
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
       }}

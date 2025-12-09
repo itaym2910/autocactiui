@@ -7,6 +7,7 @@ import * as htmlToImage from 'html-to-image';
 import { useThemeManager } from './hooks/useThemeManager';
 import { useLocalizationManager } from './hooks/useLocalizationManager';
 import { useMapInteraction } from './hooks/useMapInteraction';
+import { standardizeBackgroundImage } from './services/imageProcessor';
 
 import Map from './components/Map';
 import Sidebar from './components/Sidebar/Sidebar';
@@ -62,6 +63,7 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
   const reactFlowWrapper = useRef(null);
   const reactFlowInstance = useRef(null);
 
+  
   // --- Popup Handlers ---
   const handleShowNeighborPopup = useCallback((neighbors, sourceNode) => {
     setNeighborPopup({ isOpen: true, neighbors, sourceNode });
