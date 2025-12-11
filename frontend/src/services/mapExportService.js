@@ -1,11 +1,91 @@
 import { toBlob } from 'html-to-image';
 import { generateCactiConfig } from './configGenerator';
 import { createMap, getConfigTemplate } from './apiService';
+import { ICONS_BY_THEME, NODE_WIDTH, NODE_HEIGHT } from '../config/constants';
 
 const BACKGROUND_WIDTH = 1920;
 const BACKGROUND_HEIGHT = 1080;
 
-// Helper: Convert Blob URL to Base64
+/**
+ * Prepares nodes for a clean export by applying specific styles.
+ */
+const prepareElementsForExport = (nodes, theme) => {
+    const exportNodes = nodes.map(node => {
+        const exportNode = {
+            ...node,
+            selected: false,
+            className: 'export-node',
+        };
+
+        if (node.type === 'custom') {
+            exportNode.data = {
+                ...node.data,
+                icon: ICONS_BY_THEME[node.data.iconType][theme],
+            };
+        } else if (node.type === 'group' && theme === 'light') {
+            const lightColors = ['#ffffff', '#fff3cd', '#e9ecef'];
+            if (lightColors.includes(node.data.color?.toLowerCase())) {
+                exportNode.data = {
+                    ...node.data,
+                    color: '#cfe2ff',
+                };
+            }
+        }
+
+        return exportNode;
+    });
+
+    return { exportNodes };
+};
+
+/**
+ * Calculates bounding box and transform - keeps original logic
+ */
+const calculateBoundsAndTransform = (nodes) => {
+    const padding = 50;
+    const MIN_WIDTH = 1920;
+    const MIN_HEIGHT = 1080;
+
+    if (nodes.length === 0) {
+        return { width: MIN_WIDTH, height: MIN_HEIGHT, transform: 'translate(0,0)', minX: 0, minY: 0, padding };
+    }
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+    nodes.forEach(node => {
+        const nodeWidth = node.type === 'group' ? node.data.width : NODE_WIDTH;
+        const nodeHeight = node.type === 'group' ? node.data.height : NODE_HEIGHT;
+
+        minX = Math.min(minX, node.position.x);
+        minY = Math.min(minY, node.position.y);
+        maxX = Math.max(maxX, node.position.x + nodeWidth);
+        maxY = Math.max(maxY, node.position.y + nodeHeight);
+    });
+
+    const contentWidth = maxX - minX;
+    const contentHeight = maxY - minY;
+
+    const finalWidth = Math.max(contentWidth + padding * 2, MIN_WIDTH);
+    const finalHeight = Math.max(contentHeight + padding * 2, MIN_HEIGHT);
+
+    const offsetX = (finalWidth - contentWidth) / 2;
+    const offsetY = (finalHeight - contentHeight) / 2;
+
+    const transform = `translate(${-minX + offsetX}px, ${-minY + offsetY}px)`;
+
+    return {
+        width: finalWidth,
+        height: finalHeight,
+        transform: transform,
+        minX,
+        minY,
+        padding
+    };
+};
+
+/**
+ * Helper: Convert Blob URL to Base64
+ */
 const blobToDataURL = async (blobUrl) => {
     try {
         const response = await fetch(blobUrl);
@@ -22,7 +102,9 @@ const blobToDataURL = async (blobUrl) => {
     }
 };
 
-// Helper: Load Image
+/**
+ * Helper: Load Image
+ */
 const loadImage = (src) => {
     return new Promise((resolve, reject) => {
         const img = new Image();
@@ -34,68 +116,44 @@ const loadImage = (src) => {
 };
 
 /**
- * Gets the current visual alignment of the Viewport relative to the Background.
- * Keeps the "Good Placement" logic.
+ * Composites the nodes onto the background image if provided
  */
-const getVisualAlignment = (mapElement) => {
-    const viewportEl = mapElement.querySelector('.react-flow__viewport');
-    if (!viewportEl) throw new Error('Viewport not found');
-
-    const mapRect = mapElement.getBoundingClientRect();
-    const viewportRect = viewportEl.getBoundingClientRect();
-
-    // Calculate where the 1920x1080 background is sitting on screen
-    const bgScreenLeft = mapRect.left + (mapRect.width - BACKGROUND_WIDTH) / 2;
-    const bgScreenTop = mapRect.top + (mapRect.height - BACKGROUND_HEIGHT) / 2;
-
-    // Calculate offset of nodes relative to background
-    const tx = viewportRect.left - bgScreenLeft;
-    const ty = viewportRect.top - bgScreenTop;
-
-    // Get Zoom Level
-    const style = window.getComputedStyle(viewportEl);
-    const matrix = new DOMMatrixReadOnly(style.transform);
-    const scale = matrix.a;
-
-    return { viewportEl, tx, ty, scale };
-};
-
-/**
- * Composites the nodes onto the background image.
- */
-const combineBackgroundAndMap = async (nodesBlob, backgroundUrl) => {
+const combineBackgroundAndMap = async (nodesBlob, backgroundUrl, width, height) => {
     const canvas = document.createElement('canvas');
-    canvas.width = BACKGROUND_WIDTH;
-    canvas.height = BACKGROUND_HEIGHT;
+    canvas.width = width;
+    canvas.height = height;
     const ctx = canvas.getContext('2d');
 
-    // 1. Fill White
+    // 1. Fill with white background
     ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, BACKGROUND_WIDTH, BACKGROUND_HEIGHT);
+    ctx.fillRect(0, 0, width, height);
 
-    // 2. Draw Background Image
-    try {
-        if (backgroundUrl) {
+    // 2. Draw Background Image if provided
+    if (backgroundUrl) {
+        try {
             const base64Bg = await blobToDataURL(backgroundUrl);
             if (base64Bg) {
                 const bgImg = await loadImage(base64Bg);
-                ctx.drawImage(bgImg, 0, 0, BACKGROUND_WIDTH, BACKGROUND_HEIGHT);
+                // Draw background centered and sized to match BACKGROUND_WIDTH x BACKGROUND_HEIGHT
+                const bgX = (width - BACKGROUND_WIDTH) / 2;
+                const bgY = (height - BACKGROUND_HEIGHT) / 2;
+                ctx.drawImage(bgImg, bgX, bgY, BACKGROUND_WIDTH, BACKGROUND_HEIGHT);
             }
+        } catch (err) {
+            console.error("Error drawing background:", err);
         }
-    } catch (err) {
-        console.error("Error drawing background:", err);
     }
 
-    // 3. Draw Nodes/Edges
-    try {
-        if (nodesBlob) {
+    // 3. Draw Nodes/Edges on top
+    if (nodesBlob) {
+        try {
             const mapUrl = URL.createObjectURL(nodesBlob);
             const mapImg = await loadImage(mapUrl);
             ctx.drawImage(mapImg, 0, 0);
             URL.revokeObjectURL(mapUrl);
+        } catch (err) {
+            console.error("Error drawing nodes:", err);
         }
-    } catch (err) {
-        console.error("Error drawing nodes:", err);
     }
 
     return new Promise((resolve) => {
@@ -105,83 +163,92 @@ const combineBackgroundAndMap = async (nodesBlob, backgroundUrl) => {
     });
 };
 
-export const exportAndUploadMap = async ({
-    mapElement,
-    nodes,
-    edges,
-    mapName,
-    cactiGroupId,
-    theme,
-    backgroundImageUrl
+/**
+ * Captures the map view, generates a config, and uploads both to start a Cacti task.
+ * NOW WITH BACKGROUND SUPPORT
+ */
+export const exportAndUploadMap = async ({ 
+    mapElement, 
+    nodes, 
+    edges, 
+    mapName, 
+    cactiGroupId, 
+    theme, 
+    scaleFactor,
+    backgroundImageUrl 
 }) => {
-    
-    // STEP 1: Calculate Visual Alignment
-    const { viewportEl, tx, ty, scale } = getVisualAlignment(mapElement);
+    const viewport = mapElement.querySelector('.react-flow__viewport');
+    if (!viewport) {
+        throw new Error('Could not find map viewport for export.');
+    }
 
-    // FIX FOR "BLACK LINKS":
-    // We manually set the fill of SVG paths to 'none' before capturing.
-    // We do NOT change the stroke color, so your original link colors are preserved.
+    // Use original calculation logic
+    const { transform, width, height, minX, minY } = calculateBoundsAndTransform(nodes);
+    const originalTransform = viewport.style.transform;
+    viewport.style.transform = transform;
+
+    // Fix for black links - temporarily set fill to none
     const originalFills = [];
-    const svgPaths = viewportEl.querySelectorAll('.react-flow__edge-path');
-    
+    const svgPaths = viewport.querySelectorAll('.react-flow__edge-path');
     svgPaths.forEach((path, index) => {
-        originalFills[index] = path.style.fill; // Save original
-        path.style.fill = 'none'; // Force no fill to prevent black blobs
+        originalFills[index] = path.style.fill;
+        path.style.fill = 'none';
     });
 
     try {
-        // STEP 2: Snapshot Viewport
-        const nodesBlob = await toBlob(viewportEl, {
-            backgroundColor: 'rgba(0,0,0,0)', 
-            width: BACKGROUND_WIDTH,
-            height: BACKGROUND_HEIGHT,
-            style: {
-                // Apply the visual alignment transform
-                transform: `translate(${tx}px, ${ty}px) scale(${scale})`,
-                transformOrigin: 'top left',
-                width: `${BACKGROUND_WIDTH}px`,
-                height: `${BACKGROUND_HEIGHT}px`,
-                background: 'transparent',
-                'fill': 'none' // Extra safety for SVG
-            },
-            // Filter out controls/minimap
-            filter: node => node.classList && !node.classList.contains('react-flow__controls') && !node.classList.contains('react-flow__minimap'),
+        // Capture nodes with transparent background
+        const nodesBlob = await toBlob(viewport, {
+            width: width,
+            height: height,
+            backgroundColor: backgroundImageUrl ? 'rgba(0,0,0,0)' : (theme === 'dark' ? '#18191a' : '#ffffff'),
+            filter: (node) => (node.className !== 'react-flow__controls' && node.className !== 'react-flow__minimap'),
         });
 
-        // Restore original fills immediately (just in case)
+        if (!nodesBlob) {
+            throw new Error('Failed to create image blob.');
+        }
+
+        // Restore fills
         svgPaths.forEach((path, index) => {
             path.style.fill = originalFills[index];
         });
 
-        // STEP 3: Combine
-        const finalMapBlob = await combineBackgroundAndMap(nodesBlob, backgroundImageUrl);
-
-        // STEP 4: Generate Config
-        const templateResponse = await getConfigTemplate();
+        // Combine with background if provided
+        const finalBlob = backgroundImageUrl 
+            ? await combineBackgroundAndMap(nodesBlob, backgroundImageUrl, width, height)
+            : nodesBlob;
         
-        // Calculate Cacti Positions based on Visual Alignment
+        // Fetch the configuration template from the backend
+        const templateResponse = await getConfigTemplate();
+        const configTemplate = templateResponse.data;
+
+        // Calculate offsets (original logic)
+        const contentWidth = (nodes.reduce((max, n) => Math.max(max, n.position.x + (n.type === 'group' ? n.data.width : NODE_WIDTH)), 0) - minX);
+        const contentHeight = (nodes.reduce((max, n) => Math.max(max, n.position.y + (n.type === 'group' ? n.data.height : NODE_HEIGHT)), 0) - minY);
+        const offsetX = (width - contentWidth) / 2;
+        const offsetY = (height - contentHeight) / 2;
+
+        // Transform node positions for config (original logic)
         const nodesForConfig = nodes.map(node => ({
             ...node,
             position: {
-                x: node.position.x * scale + tx,
-                y: node.position.y * scale + ty,
+                x: node.position.x - minX + offsetX,
+                y: node.position.y - minY + offsetY,
             },
-            width: (node.width || 50) * scale,
-            height: (node.height || 50) * scale
         }));
-
+        
         const configContent = generateCactiConfig({
-            nodes: nodesForConfig,
-            edges,
-            mapName,
-            mapWidth: BACKGROUND_WIDTH,
-            mapHeight: BACKGROUND_HEIGHT,
-            scaleFactor: 1, 
-            configTemplate: templateResponse.data,
+            nodes: nodesForConfig, 
+            edges, 
+            mapName, 
+            mapWidth: width, 
+            mapHeight: height,
+            scaleFactor,
+            configTemplate,
         });
-
+        
         const formData = new FormData();
-        formData.append('map_image', finalMapBlob, `${mapName}.png`);
+        formData.append('map_image', finalBlob, `${mapName}.png`);
         formData.append('config_content', configContent);
         formData.append('map_name', mapName);
         formData.append('cacti_group_id', cactiGroupId);
@@ -189,63 +256,67 @@ export const exportAndUploadMap = async ({
         return await createMap(formData);
 
     } catch (error) {
-        // Restore styles if error occurs
+        // Restore fills on error
         svgPaths.forEach((path, index) => {
             path.style.fill = originalFills[index];
         });
-        console.error("Export failed:", error);
         throw error;
+    } finally {
+        viewport.style.transform = originalTransform;
     }
 };
 
-export const handleUploadProcess = async ({
-    mapElement,
-    nodes,
-    edges,
-    mapName,
-    cactiGroupId,
-    theme,
-    setNodes,
+/**
+ * Wrapper function that handles the entire map upload process
+ * NOW WITH BACKGROUND SUPPORT
+ */
+export const handleUploadProcess = async ({ 
+    mapElement, 
+    nodes, 
+    edges, 
+    mapName, 
+    cactiGroupId, 
+    theme, 
+    setNodes, 
     setEdges,
-    backgroundImageUrl
+    backgroundImageUrl 
 }) => {
-    // FIX: Simplified Preparation
-    // We only remove the "selected" state so blue borders don't appear in the image.
-    // We do NOT change colors, icons, or classes, preserving your Names and Links.
-    const exportNodes = nodes.map(n => ({
-        ...n,
-        selected: false,
-        // Ensure handles (dots on nodes) are hidden if your CSS hides them when not selected
-    }));
-    
-    const exportEdges = edges.map(e => ({
-        ...e,
-        selected: false
-    }));
-
-    // 2. Temporarily apply clean state
     const originalNodes = [...nodes];
     const originalEdges = [...edges];
-    
-    setNodes(exportNodes);
-    setEdges(exportEdges);
-    
-    // 3. Short delay to allow React to remove selection borders
-    await new Promise(resolve => setTimeout(resolve, 100));
 
+    // Filter out preview elements
+    const finalNodes = nodes.filter(n => !n.data?.isPreview);
+    const finalEdges = edges.filter(e => !e.data?.isPreview);
+
+    // Prepare for export styling
+    const { exportNodes } = prepareElementsForExport(finalNodes, theme);
+    
+    // Set state for screenshot
+    setNodes(exportNodes);
+    setEdges([]);
+    
+    mapElement.classList.add('exporting');
+
+    const scaleFactor = window.devicePixelRatio;
+
+    // Wait for React to re-render
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
     try {
-        const response = await exportAndUploadMap({
-            mapElement,
-            nodes: exportNodes,
-            edges: exportEdges,
-            mapName,
-            cactiGroupId,
-            theme,
-            backgroundImageUrl
+        const response = await exportAndUploadMap({ 
+            mapElement, 
+            nodes: exportNodes, 
+            edges: finalEdges, 
+            mapName, 
+            cactiGroupId, 
+            theme, 
+            scaleFactor,
+            backgroundImageUrl 
         });
         return response.data;
     } finally {
-        // 4. Restore original state (selection comes back)
+        // Restore UI
+        mapElement.classList.remove('exporting');
         setNodes(originalNodes);
         setEdges(originalEdges);
     }
