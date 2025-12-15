@@ -193,7 +193,39 @@ MOCK_NEIGHBORS = {
         {"interface": "TenGigabitEthernet1/1/1", "hostname": "Core-Router-1", "ip": "10.10.1.3", "description": "Uplink to Core", "bandwidth": "10G"},
         {"interface": "TenGigabitEthernet1/1/2", "hostname": "Dist-Switch-B", "ip": "10.10.2.2", "description": "VRRP Link to Dist-B", "bandwidth": "10G"},
         {"interface": "TenGigabitEthernet1/1/3", "hostname": "Core-Router-1", "ip": "", "description": "Redundant Uplink to Core", "bandwidth": "10G"},
-        {"interface": "GigabitEthernet2/0/1", "hostname": "Access-SW-A1", "ip": "", "description": "To Access-SW-A1", "bandwidth": "1G"},
+        
+        # --- Connections to Access-SW-A1 (Standard with IP) ---
+        {
+            "interface": "GigabitEthernet2/0/1", 
+            "hostname": "Access-SW-A1", 
+            "ip": "192.168.1.10", 
+            "description": "To Access-SW-A1", 
+            "bandwidth": "1G"
+        },
+        
+        # --- NEW TEST: 2 Links to a device with NO IP (Anonymous-Appliance) ---
+        {
+            "interface": "GigabitEthernet3/0/1", 
+            "hostname": "Anonymous-Appliance", 
+            "ip": "", # <--- NO IP (Empty String)
+            "description": "Link A (No IP)", 
+            "bandwidth": "100M"
+        },
+                {
+            "interface": "GigabitEthernet3/0/2", 
+            "hostname": "Anonymous-Appliance", 
+            "ip": "", # <--- NO IP (Empty String)
+            "description": "Link B (No IP)", 
+            "bandwidth": "100M"
+        },
+        {
+            "interface": "GigabitEthernet3/0/3", 
+            "hostname": "Anonymous-Appliance", 
+            "ip": "", # <--- NO IP (Empty String)
+            "description": "Link C (No IP)", 
+            "bandwidth": "100M"
+        },
+
         {"interface": "GigabitEthernet2/0/2", "hostname": "Access-SW-A2", "ip": "192.168.1.20", "description": "To Access-SW-A2", "bandwidth": "1G"},
     ],
     "10.10.2.2": [
@@ -203,9 +235,34 @@ MOCK_NEIGHBORS = {
         {"interface": "GigabitEthernet2/0/2", "hostname": "VPN-Encryptor-1", "ip": "172.16.20.8", "description": "To Encryptor", "bandwidth": "1G"},
     ],
     "192.168.1.10": [
-        {"interface": "GigabitEthernet1/0/1", "hostname": "Dist-Switch-A", "ip": "10.10.1.2", "description": "Uplink to Dist-A", "bandwidth": "1G"},
+        # --- Connections back to Dist-Switch-A ---
+        {"interface": "GigabitEthernet1/0/1", "hostname": "Dist-Switch-A", "ip": "10.10.1.2", "description": "Uplink to Dist-A (Link 1)", "bandwidth": "1G"},
+
         {"interface": "GigabitEthernet1/0/5", "hostname": "Printer-Finance", "ip": "", "description": "Finance Department Printer", "bandwidth": "100M"},
         {"interface": "GigabitEthernet1/0/6", "hostname": "VoIP-Phone-112", "ip": "", "description": "Desk Phone", "bandwidth": "100M"},
+        
+        # --- TEST CASE: Device with IP (192.168.1.10) -> Device with NO IP (Multi-link) ---
+        {
+            "interface": "GigabitEthernet1/0/20", 
+            "hostname": "Proprietary-Industrial-Unit", 
+            "ip": "",  # <--- NO IP ADDRESS
+            "description": "Primary Control Link", 
+            "bandwidth": "1G"
+        },
+        {
+            "interface": "GigabitEthernet1/0/21", 
+            "hostname": "Proprietary-Industrial-Unit", 
+            "ip": "",  # <--- NO IP ADDRESS
+            "description": "Redundant Data Link", 
+            "bandwidth": "1G"
+        },
+        {
+            "interface": "GigabitEthernet1/0/22", 
+            "hostname": "Proprietary-Industrial-Unit", 
+            "ip": "",  # <--- NO IP ADDRESS
+            "description": "Heartbeat/Sync Link", 
+            "bandwidth": "1G"
+        },
     ],
     "192.168.1.20": [
         {"interface": "GigabitEthernet1/0/1", "hostname": "Dist-Switch-A", "ip": "10.10.1.2", "description": "Uplink to Dist-A", "bandwidth": "1G"},
@@ -294,6 +351,24 @@ MOCK_FULL_SCAN_EXTRAS = {
     ],
     "192.168.1.10": [
         {"interface": "GigabitEthernet1/0/48", "hostname": "Hidden-Camera-1", "ip": "192.168.1.200", "description": "Detected via IP Scan", "bandwidth": "100M", "isFullScan": True}
+    ],
+    "172.16.30.12": [
+        {
+            "interface": "Serial0/0/0", 
+            "hostname": "Legacy-Terminator-X", 
+            "ip": "", # <--- NO IP
+            "description": "Serial Console", 
+            "bandwidth": "9600b", 
+            "isFullScan": True
+        },
+        {
+            "interface": "Serial0/0/1", 
+            "hostname": "Legacy-Terminator-X", 
+            "ip": "", # <--- NO IP
+            "description": "AUX Port", 
+            "bandwidth": "9600b", 
+            "isFullScan": True
+        }
     ]
 }
 

@@ -13,26 +13,26 @@ import { calculateSnaps } from './useSnapping';
  * Creates a React Flow edge object.
  */
 const createEdgeObject = (sourceId, targetId, neighborInfo, isPreview = false) => {
-    const { interface: iface, bandwidth } = neighborInfo;
-    const safeInterface = iface ? iface.replace(/[/]/g, '-') : `unknown-${Math.random()}`;
-    const edgeId = `e-${sourceId}-${targetId}-${safeInterface}`;
+  const { interface: iface, bandwidth } = neighborInfo;
+  const safeInterface = iface ? iface.replace(/[/]/g, '-') : `unknown-${Math.random()}`;
+  const edgeId = `e-${sourceId}-${targetId}-${safeInterface}`;
 
-    const style = isPreview
-        ? { stroke: '#007bff', strokeDasharray: '5 5' }
-        : { stroke: '#6c757d' };
+  const style = isPreview
+    ? { stroke: '#007bff', strokeDasharray: '5 5' }
+    : { stroke: '#6c757d' };
 
-    return {
-        id: edgeId,
-        source: sourceId,
-        target: targetId,
-        animated: isPreview, 
-        style,
-        data: {
-            isPreview,
-            interface: iface,
-            bandwidth: bandwidth
-        }
-    };
+  return {
+    id: edgeId,
+    source: sourceId,
+    target: targetId,
+    animated: isPreview,
+    style,
+    data: {
+      isPreview,
+      interface: iface,
+      bandwidth: bandwidth
+    }
+  };
 };
 
 
@@ -45,10 +45,10 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
   const [snapLines, setSnapLines] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  
+
   const { t } = useTranslation();
   const dragContext = useRef(null);
-  
+
   const nodesRef = useRef(nodes);
   const edgesRef = useRef(edges);
   const currentNeighborsRef = useRef(currentNeighbors);
@@ -60,7 +60,7 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
   const {
     createNodeObject,
     handleDeleteElements: baseHandleDeleteElements,
-    handleUpdateNodeData: baseHandleUpdateNodeData, 
+    handleUpdateNodeData: baseHandleUpdateNodeData,
     handleAddGroup,
     handleAddTextNode,
   } = useNodeManagement(theme, setState);
@@ -79,7 +79,7 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
   const handleUpdateNodeData = useCallback((id, newData, saveToHistory = true) => {
     baseHandleUpdateNodeData(id, newData, saveToHistory);
 
-    setSelectedElements((prevSelected) => 
+    setSelectedElements((prevSelected) =>
       prevSelected.map((node) => {
         if (node.id === id) {
           return { ...node, data: { ...node.data, ...newData } };
@@ -102,17 +102,17 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
       })
     }), true);
   }, [theme, setState]);
-  
+
   const clearPreviewElements = useCallback(() => {
-      setState(prev => {
-          if (!prev) return prev;
-          const nextNodes = prev.nodes.filter(n => !n.data.isPreview);
-          const nextEdges = prev.edges.filter(e => !e.data.isPreview);
-          if (nextNodes.length < prev.nodes.length || nextEdges.length < prev.edges.length) {
-              return { nodes: nextNodes, edges: nextEdges };
-          }
-          return prev;
-      }, true);
+    setState(prev => {
+      if (!prev) return prev;
+      const nextNodes = prev.nodes.filter(n => !n.data.isPreview);
+      const nextEdges = prev.edges.filter(e => !e.data.isPreview);
+      if (nextNodes.length < prev.nodes.length || nextEdges.length < prev.edges.length) {
+        return { nodes: nextNodes, edges: nextEdges };
+      }
+      return prev;
+    }, true);
   }, [setState]);
 
   // --- 1. STANDARD SCAN ---
@@ -122,45 +122,45 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
     try {
       const response = await api.getDeviceNeighbors(sourceNode.id);
       const allNeighbors = response.data.neighbors;
-      
+
       allNeighbors.forEach(neighbor => {
         if (neighbor.ip) {
-          api.getDeviceInfo(neighbor.ip).catch(() => {});
-          api.getDeviceNeighbors(neighbor.ip).catch(() => {});
+          api.getDeviceInfo(neighbor.ip).catch(() => { });
+          api.getDeviceNeighbors(neighbor.ip).catch(() => { });
         }
       });
 
       setState(prev => {
         if (!prev) return prev;
-        
+
         const nodesWithoutPreviews = prev.nodes.filter(n => !n.data.isPreview).map(n => ({ ...n, selected: n.id === sourceNode.id }));
         const edgesWithoutPreviews = prev.edges.filter(e => !e.data.isPreview);
 
         const nodeIdsOnMap = new Set(nodesWithoutPreviews.map(n => n.id));
         const hostnamesOnMap = new Set(nodesWithoutPreviews.filter(n => n.data?.hostname).map(n => n.data.hostname));
-     
+
         const neighborsToAddAsPreview = allNeighbors
-            .filter(n => {
-                if (n.ip) return !nodeIdsOnMap.has(n.ip);
-                return !hostnamesOnMap.has(n.hostname);
-            })
-            .map(n => ({ ...n, isFullScan: false })); 
-       
+          .filter(n => {
+            if (n.ip) return !nodeIdsOnMap.has(n.ip);
+            return !hostnamesOnMap.has(n.hostname);
+          })
+          .map(n => ({ ...n, isFullScan: false }));
+
         const edgesToCreate = [];
         const neighborsToConnect = allNeighbors.filter(n => n.ip && nodeIdsOnMap.has(n.ip));
-        
+
         neighborsToConnect.forEach(neighbor => {
-            const edgeId = `e-${sourceNode.id}-${neighbor.ip}-${neighbor.interface.replace(/[/]/g, '-')}`;
-            if (!edgesWithoutPreviews.some(e => e.id === edgeId)) {
-                edgesToCreate.push(createEdgeObject(sourceNode.id, neighbor.ip, neighbor, false));
-            }
+          const edgeId = `e-${sourceNode.id}-${neighbor.ip}-${neighbor.interface.replace(/[/]/g, '-')}`;
+          if (!edgesWithoutPreviews.some(e => e.id === edgeId)) {
+            edgesToCreate.push(createEdgeObject(sourceNode.id, neighbor.ip, neighbor, false));
+          }
         });
 
         const edgesWithNewConnections = [...edgesWithoutPreviews, ...edgesToCreate];
 
         onShowNeighborPopup(neighborsToAddAsPreview, sourceNode);
         setCurrentNeighbors(neighborsToAddAsPreview);
-        setSelectedElements(nodesWithoutPreviews.filter(n => n.id === sourceNode.id)); 
+        setSelectedElements(nodesWithoutPreviews.filter(n => n.id === sourceNode.id));
         return { nodes: nodesWithoutPreviews, edges: edgesWithNewConnections };
 
       });
@@ -178,52 +178,52 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
 
     setLoading(true);
     setError('');
-    
+
     try {
-        const response = await api.getFullDeviceNeighbors(sourceNode.data.ip); 
-        const allNeighbors = response.data.neighbors;
+      const response = await api.getFullDeviceNeighbors(sourceNode.data.ip);
+      const allNeighbors = response.data.neighbors;
 
-        allNeighbors.forEach(neighbor => {
-            if (neighbor.ip) api.getDeviceInfo(neighbor.ip).catch(() => {});
+      allNeighbors.forEach(neighbor => {
+        if (neighbor.ip) api.getDeviceInfo(neighbor.ip).catch(() => { });
+      });
+
+      setState(prev => {
+        if (!prev) return prev;
+
+        const nodesWithoutPreviews = prev.nodes.filter(n => !n.data.isPreview);
+        const nodeIdsOnMap = new Set(nodesWithoutPreviews.map(n => n.id));
+        const hostnamesOnMap = new Set(nodesWithoutPreviews.filter(n => n.data?.hostname).map(n => n.data.hostname));
+
+        const potentialNeighbors = allNeighbors.filter(n => {
+          if (n.ip) return !nodeIdsOnMap.has(n.ip);
+          return !hostnamesOnMap.has(n.hostname);
         });
 
-        setState(prev => {
-            if (!prev) return prev;
+        const existingRegularKeys = new Set(
+          currentNeighborsRef.current.map(n => n.ip || n.hostname)
+        );
 
-            const nodesWithoutPreviews = prev.nodes.filter(n => !n.data.isPreview);
-            const nodeIdsOnMap = new Set(nodesWithoutPreviews.map(n => n.id));
-            const hostnamesOnMap = new Set(nodesWithoutPreviews.filter(n => n.data?.hostname).map(n => n.data.hostname));
-
-            const potentialNeighbors = allNeighbors.filter(n => {
-                if (n.ip) return !nodeIdsOnMap.has(n.ip);
-                return !hostnamesOnMap.has(n.hostname);
-            });
-
-            const existingRegularKeys = new Set(
-                currentNeighborsRef.current.map(n => n.ip || n.hostname)
-            );
-
-            const newFullScanNeighbors = [];
-            potentialNeighbors.forEach(n => {
-                const key = n.ip || n.hostname;
-                if (!existingRegularKeys.has(key)) {
-                    newFullScanNeighbors.push({ ...n, isFullScan: true });
-                }
-            });
-
-            const combinedNeighbors = [...currentNeighborsRef.current, ...newFullScanNeighbors];
-
-            setCurrentNeighbors(combinedNeighbors);
-            onShowNeighborPopup(combinedNeighbors, sourceNode); 
-
-            return prev; 
+        const newFullScanNeighbors = [];
+        potentialNeighbors.forEach(n => {
+          const key = n.ip || n.hostname;
+          if (!existingRegularKeys.has(key)) {
+            newFullScanNeighbors.push({ ...n, isFullScan: true });
+          }
         });
+
+        const combinedNeighbors = [...currentNeighborsRef.current, ...newFullScanNeighbors];
+
+        setCurrentNeighbors(combinedNeighbors);
+        onShowNeighborPopup(combinedNeighbors, sourceNode);
+
+        return prev;
+      });
 
     } catch (err) {
-        console.error("Full scan failed", err);
-        setError(t('app.errorFullScan', { ip: sourceNode.data.ip }) || "Full scan failed.");
+      console.error("Full scan failed", err);
+      setError(t('app.errorFullScan', { ip: sourceNode.data.ip }) || "Full scan failed.");
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   }, [selectedElements, setState, t, onShowNeighborPopup]);
 
@@ -237,103 +237,112 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
     const hostname = neighborGroup.hostname;
 
     const handleStateUpdate = (prev, newNode, newEdges = []) => {
-        const sourceNode = prev.nodes.find(n => n.id === sourceNodeId);
-        if (!sourceNode) return prev;
-        
-        const nodesWithoutOld = prev.nodes.filter(n => !n.data.isPreview && n.id !== newNode.id);
-        const edgesWithoutPreviews = prev.edges.filter(e => !e.data.isPreview);
-        
-        const nextNodes = [...nodesWithoutOld, newNode];
-        nextNodes.forEach(n => n.selected = n.id === sourceNodeId);
-        
-        const nextEdges = [...edgesWithoutPreviews, ...newEdges];
-        setSelectedElements([sourceNode]);
+      const sourceNode = prev.nodes.find(n => n.id === sourceNodeId);
+      if (!sourceNode) return prev;
 
-        const permanentNodeIpsOnMap = new Set(nextNodes.filter(n => n.data.ip).map(n => n.data.ip));
-        
-        const remainingNeighbors = currentNeighborsRef.current.filter(n => {
-            if (n.ip) return !permanentNodeIpsOnMap.has(n.ip);
-            const key = `${n.hostname}-${n.interface}`;
-            const addedLinks = new Set(neighborGroup.links.map(l => `${l.hostname}-${l.interface}`));
-            return !addedLinks.has(key);
-        });
-        setCurrentNeighbors(remainingNeighbors);
+      const nodesWithoutOld = prev.nodes.filter(n => !n.data.isPreview && n.id !== newNode.id);
+      const edgesWithoutPreviews = prev.edges.filter(e => !e.data.isPreview);
 
-        if (!isBatchOperation) {
-          onShowNeighborPopup(remainingNeighbors, sourceNode);
-        }
-        
-        return { nodes: nextNodes, edges: nextEdges };
+      const nextNodes = [...nodesWithoutOld, newNode];
+      nextNodes.forEach(n => n.selected = n.id === sourceNodeId);
+
+      const nextEdges = [...edgesWithoutPreviews, ...newEdges];
+      setSelectedElements([sourceNode]);
+
+      const permanentNodeIpsOnMap = new Set(nextNodes.filter(n => n.data.ip).map(n => n.data.ip));
+
+      const remainingNeighbors = currentNeighborsRef.current.filter(n => {
+        if (n.ip) return !permanentNodeIpsOnMap.has(n.ip);
+        const key = `${n.hostname}-${n.interface}`;
+        const addedLinks = new Set(neighborGroup.links.map(l => `${l.hostname}-${l.interface}`));
+        return !addedLinks.has(key);
+      });
+      setCurrentNeighbors(remainingNeighbors);
+
+      if (!isBatchOperation) {
+        onShowNeighborPopup(remainingNeighbors, sourceNode);
+      }
+
+      return { nodes: nextNodes, edges: nextEdges };
     };
 
     if (isEndDevice) {
-        setState(prev => {
-            const sourceNode = prev.nodes.find(n => n.id === sourceNodeId);
-            if (!sourceNode) return prev;
-            const linkInfo = neighborGroup.links[0]; 
-            const position = { x: sourceNode.position.x + (Math.random() * 300 - 150), y: sourceNode.position.y + 200 };
-            const newNode = createNodeObject({ ip: '', hostname: hostname, type: 'Switch' }, position);
-            const newEdge = createEdgeObject(sourceNodeId, newNode.id, linkInfo, false);
-            return handleStateUpdate(prev, newNode, [newEdge]);
-        });
-        setLoading(false);
-        return;
+      setState(prev => {
+        const sourceNode = prev.nodes.find(n => n.id === sourceNodeId);
+        if (!sourceNode) return prev;
+
+        // 1. Calculate position (same as before)
+        const position = { x: sourceNode.position.x + (Math.random() * 300 - 150), y: sourceNode.position.y + 200 };
+
+        // 2. Create the Node (same as before)
+        const newNode = createNodeObject({ ip: '', hostname: hostname, type: 'Switch' }, position);
+
+        // 3. ✅ FIX: Loop through ALL links to create multiple edges
+        const newEdges = neighborGroup.links.map(linkInfo =>
+          createEdgeObject(sourceNodeId, newNode.id, linkInfo, false)
+        );
+
+        // 4. Pass the array of edges to the update function
+        return handleStateUpdate(prev, newNode, newEdges);
+      });
+      setLoading(false);
+      return;
     }
-    
+
     try {
-        let confirmedNode;
-        const existingNode = nodesRef.current.find(n => n.id === neighborIp);
+      let confirmedNode;
+      const existingNode = nodesRef.current.find(n => n.id === neighborIp);
 
-        if (existingNode) {
-            confirmedNode = existingNode;
-        } else {
-            const sourceNode = nodesRef.current.find(n => n.id === sourceNodeId);
-            const position = { x: sourceNode.position.x + (Math.random() * 300 - 150), y: sourceNode.position.y + 200 };
-            
-            try {
-                const deviceResponse = await api.getDeviceInfo(neighborIp);
-                const deviceData = deviceResponse.data;
-                if (!deviceData.type) {
-                    deviceData.type = 'Unknown';
-                }
-                confirmedNode = createNodeObject(deviceData, position);
-            } catch (infoError) {
-                const fallbackDeviceData = { ip: neighborIp, hostname: hostname, type: 'Unknown' };
-                confirmedNode = createNodeObject(fallbackDeviceData, position, 'Unknown');
-            }
-        }
+      if (existingNode) {
+        confirmedNode = existingNode;
+      } else {
+        const sourceNode = nodesRef.current.find(n => n.id === sourceNodeId);
+        const position = { x: sourceNode.position.x + (Math.random() * 300 - 150), y: sourceNode.position.y + 200 };
 
-        let allNeighborsOfNewNode = [];
         try {
-            const neighborsResponse = await api.getDeviceNeighbors(neighborIp);
-            if (neighborsResponse.data.neighbors) {
-                allNeighborsOfNewNode = neighborsResponse.data.neighbors;
-            }
-        } catch (neighborError) {}
+          const deviceResponse = await api.getDeviceInfo(neighborIp);
+          const deviceData = deviceResponse.data;
+          if (!deviceData.type) {
+            deviceData.type = 'Unknown';
+          }
+          confirmedNode = createNodeObject(deviceData, position);
+        } catch (infoError) {
+          const fallbackDeviceData = { ip: neighborIp, hostname: hostname, type: 'Unknown' };
+          confirmedNode = createNodeObject(fallbackDeviceData, position, 'Unknown');
+        }
+      }
 
-        setState(prev => {
-            const newEdgesFromSource = neighborGroup.links.map(link => 
-                createEdgeObject(sourceNodeId, confirmedNode.id, link, false)
-            );
-            let tempState = handleStateUpdate(prev, confirmedNode, newEdgesFromSource);
-            const permanentNodeIdsOnMap = new Set(tempState.nodes.map(n => n.id));
-            const existingEdgeIds = new Set(tempState.edges.map(e => e.id));
-            const neighborsToConnect = allNeighborsOfNewNode.filter(n => 
-                n.ip && n.ip !== sourceNodeId && permanentNodeIdsOnMap.has(n.ip)
-            );
-            neighborsToConnect.forEach(neighbor => {
-                const edgeId = `e-${confirmedNode.id}-${neighbor.ip}-${neighbor.interface.replace(/[/]/g, '-')}`;
-                if (!existingEdgeIds.has(edgeId)) {
-                    tempState.edges.push(createEdgeObject(confirmedNode.id, neighbor.ip, neighbor, false));
-                }
-            });
-            return tempState;
+      let allNeighborsOfNewNode = [];
+      try {
+        const neighborsResponse = await api.getDeviceNeighbors(neighborIp);
+        if (neighborsResponse.data.neighbors) {
+          allNeighborsOfNewNode = neighborsResponse.data.neighbors;
+        }
+      } catch (neighborError) { }
+
+      setState(prev => {
+        const newEdgesFromSource = neighborGroup.links.map(link =>
+          createEdgeObject(sourceNodeId, confirmedNode.id, link, false)
+        );
+        let tempState = handleStateUpdate(prev, confirmedNode, newEdgesFromSource);
+        const permanentNodeIdsOnMap = new Set(tempState.nodes.map(n => n.id));
+        const existingEdgeIds = new Set(tempState.edges.map(e => e.id));
+        const neighborsToConnect = allNeighborsOfNewNode.filter(n =>
+          n.ip && n.ip !== sourceNodeId && permanentNodeIdsOnMap.has(n.ip)
+        );
+        neighborsToConnect.forEach(neighbor => {
+          const edgeId = `e-${confirmedNode.id}-${neighbor.ip}-${neighbor.interface.replace(/[/]/g, '-')}`;
+          if (!existingEdgeIds.has(edgeId)) {
+            tempState.edges.push(createEdgeObject(confirmedNode.id, neighbor.ip, neighbor, false));
+          }
         });
+        return tempState;
+      });
     } catch (err) {
-        setError(t('app.errorAddNeighbor', { ip: neighborIp }));
-        clearPreviewElements();
+      setError(t('app.errorAddNeighbor', { ip: neighborIp }));
+      clearPreviewElements();
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   }, [createNodeObject, t, onShowNeighborPopup, setState, clearPreviewElements]);
 
@@ -346,9 +355,9 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
 
   const onNodeClick = useCallback((event, node, setLoading, setError, isContextMenu = false) => {
     if (node.data.isPreview) {
-        if (event) event.stopPropagation();
-        confirmPreviewNode(node, setLoading, setError);
-        return;
+      if (event) event.stopPropagation();
+      confirmPreviewNode(node, setLoading, setError);
+      return;
     }
     const isNodeAlreadySelected = selectedElements.some(el => el.id === node.id);
     if (isContextMenu && isNodeAlreadySelected) return;
@@ -356,34 +365,34 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
     const isMultiSelect = event && (event.ctrlKey || event.metaKey);
     let newSelectedNodes;
     if (isMultiSelect) {
-        newSelectedNodes = isNodeAlreadySelected ? selectedElements.filter(el => el.id !== node.id) : [...selectedElements, node];
+      newSelectedNodes = isNodeAlreadySelected ? selectedElements.filter(el => el.id !== node.id) : [...selectedElements, node];
     } else {
-        newSelectedNodes = [node];
+      newSelectedNodes = [node];
     }
     setSelectedElements(newSelectedNodes);
     clearPreviewElements();
-    setState(prev => ({ ...prev, nodes: prev.nodes.map(n => ({...n, selected: newSelectedNodes.some(sn => sn.id === n.id)})) }), true);
+    setState(prev => ({ ...prev, nodes: prev.nodes.map(n => ({ ...n, selected: newSelectedNodes.some(sn => sn.id === n.id) })) }), true);
 
     const selectedNode = newSelectedNodes[0];
     if (newSelectedNodes.length === 1 && selectedNode.type === 'custom' && selectedNode.data.ip && !isContextMenu) {
-        handleFetchNeighbors(selectedNode, setLoading, setError); 
+      handleFetchNeighbors(selectedNode, setLoading, setError);
     } else {
-        setCurrentNeighbors([]);
+      setCurrentNeighbors([]);
     }
   }, [selectedElements, setState, clearPreviewElements, handleFetchNeighbors, confirmPreviewNode]);
 
   const onPaneClick = useCallback(() => {
     setSelectedElements([]); setCurrentNeighbors([]); clearPreviewElements();
-    setState(prev => ({ ...prev, nodes: prev.nodes.map(n => ({...n, selected: false})) }), true);
+    setState(prev => ({ ...prev, nodes: prev.nodes.map(n => ({ ...n, selected: false })) }), true);
   }, [setState, clearPreviewElements]);
 
   const onSelectionChange = useCallback(({ nodes: selectedNodes }) => {
-      setSelectedElements(selectedNodes);
-      if (selectedNodes.length !== 1 || (selectedNodes.length === 1 && selectedNodes[0].type !== 'custom')) {
-          clearPreviewElements(); setCurrentNeighbors([]);
-      }
+    setSelectedElements(selectedNodes);
+    if (selectedNodes.length !== 1 || (selectedNodes.length === 1 && selectedNodes[0].type !== 'custom')) {
+      clearPreviewElements(); setCurrentNeighbors([]);
+    }
   }, [clearPreviewElements]);
-  
+
   const handleDeleteElements = useCallback(() => {
     baseHandleDeleteElements(selectedElements); setSelectedElements([]);
   }, [baseHandleDeleteElements, selectedElements]);
@@ -393,28 +402,28 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
     const isDragEnd = changes.some(c => c.type === 'position' && c.dragging === false);
     if (!isDrag && !isDragEnd) setSnapLines([]);
     setState(prev => {
-        if (isDrag && !dragContext.current) {
-             const context = { childrenMap: new Map() };
-             dragContext.current = context;
-        }
-        if (isDrag) {
-             const draggedNodeIds = new Set(changes.filter(c => c.dragging).map(c => c.id));
-             const draggedNodes = prev.nodes.filter(n => draggedNodeIds.has(n.id));
-             const updatedDraggedNodes = draggedNodes.map(dn => {
-                 const change = changes.find(c => c.id === dn.id && c.position);
-                 return change ? { ...dn, position: change.position } : dn;
-             });
-             const { snapLines, positionAdjustment } = calculateSnaps(updatedDraggedNodes, prev.nodes);
-             setSnapLines(snapLines);
-             changes.forEach(change => {
-                 if (draggedNodeIds.has(change.id) && change.position) {
-                     change.position.x += positionAdjustment.x;
-                     change.position.y += positionAdjustment.y;
-                 }
-             });
-        }
-        let nextNodes = applyNodeChanges(changes, prev.nodes);
-        return { ...prev, nodes: nextNodes };
+      if (isDrag && !dragContext.current) {
+        const context = { childrenMap: new Map() };
+        dragContext.current = context;
+      }
+      if (isDrag) {
+        const draggedNodeIds = new Set(changes.filter(c => c.dragging).map(c => c.id));
+        const draggedNodes = prev.nodes.filter(n => draggedNodeIds.has(n.id));
+        const updatedDraggedNodes = draggedNodes.map(dn => {
+          const change = changes.find(c => c.id === dn.id && c.position);
+          return change ? { ...dn, position: change.position } : dn;
+        });
+        const { snapLines, positionAdjustment } = calculateSnaps(updatedDraggedNodes, prev.nodes);
+        setSnapLines(snapLines);
+        changes.forEach(change => {
+          if (draggedNodeIds.has(change.id) && change.position) {
+            change.position.x += positionAdjustment.x;
+            change.position.y += positionAdjustment.y;
+          }
+        });
+      }
+      let nextNodes = applyNodeChanges(changes, prev.nodes);
+      return { ...prev, nodes: nextNodes };
     }, !isDragEnd);
     if (isDragEnd) { dragContext.current = null; setSnapLines([]); }
   }, [setState]);
@@ -422,16 +431,16 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
   const resetMap = useCallback(() => {
     resetState(); setSelectedElements([]); setCurrentNeighbors([]);
   }, [resetState]);
-  
+
   const selectAllByTypeHandler = useCallback((iconType) => {
     selectAllByType(iconType, setSelectedElements);
   }, [selectAllByType, setSelectedElements]);
 
   return {
-    nodes, setNodes: (newNodes) => setState(prev => ({...prev, nodes: typeof newNodes === 'function' ? newNodes(prev.nodes) : newNodes}), true),
-    edges, setEdges: (newEdges) => setState(prev => ({...prev, edges: typeof newEdges === 'function' ? newEdges(prev.edges) : newEdges}), true),
-    selectedElements, snapLines, onNodesChange, onNodeClick, onPaneClick, onSelectionChange, handleDeleteElements, 
-    handleUpdateNodeData, 
+    nodes, setNodes: (newNodes) => setState(prev => ({ ...prev, nodes: typeof newNodes === 'function' ? newNodes(prev.nodes) : newNodes }), true),
+    edges, setEdges: (newEdges) => setState(prev => ({ ...prev, edges: typeof newEdges === 'function' ? newEdges(prev.edges) : newEdges }), true),
+    selectedElements, snapLines, onNodesChange, onNodeClick, onPaneClick, onSelectionChange, handleDeleteElements,
+    handleUpdateNodeData,
     handleAddGroup, handleAddTextNode, createNodeObject, resetMap, undo, redo, alignElements, distributeElements, bringForward, sendBackward, bringToFront, sendToBack, selectAllByType: selectAllByTypeHandler, currentNeighbors, confirmNeighbor, confirmPreviewNode, setLoading: setIsLoading, setError: setError, handleFullScan, setState
   };
 };
