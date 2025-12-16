@@ -121,6 +121,28 @@ const LinkSelectionModal = ({ group, initialSelection, onSave, onClose }) => {
     );
 };
 
+// --- LINK HELPERS (no external files) ---
+const buildLinkKey = (source, target, iface) =>
+  `${source}::${target}::${iface}`;
+
+const filterExistingLinks = (
+  links,
+  sourceHostname,
+  targetHostname,
+  existingLinks
+) => {
+  if (!existingLinks || existingLinks.size === 0) return links;
+
+  return links.filter(link => {
+    const key = buildLinkKey(
+      sourceHostname,
+      targetHostname,
+      link.interface
+    );
+    return !existingLinks.has(key);
+  });
+};
+
 
 // --- MAIN COMPONENT ---
 const NeighborsPopup = ({
@@ -128,6 +150,7 @@ const NeighborsPopup = ({
   neighbors,
   sourceHostname,
   onAddNeighbor,
+  existingLinks,
   onAddSelectedNeighbors,
   onClose,
   onFullScan,
@@ -262,26 +285,59 @@ const NeighborsPopup = ({
       let linksToAdd = [];
       const userSelectedLinks = selectedLinks.get(key);
       if (userSelectedLinks && userSelectedLinks.size > 0) {
-          linksToAdd = group.links.filter(l => userSelectedLinks.has(l.interface));
+        linksToAdd = group.links.filter(l => userSelectedLinks.has(l.interface));
       } else {
-          linksToAdd = group.links; 
+        linksToAdd = group.links; 
       }
       onAddNeighbor({ ...group, links: linksToAdd });
   };
 
   const handleAddSelectedClick = () => {
     if (isLoading || selectedDevices.size === 0) return;
+
     const groupsToAdd = [];
+
+    // ✅ IMPORTANT: local copy to prevent re-adding links in same operation
+    const seenLinks = new Set(existingLinks || []);
+
     filteredNeighbors.forEach(group => {
         const key = getGroupKey(group);
-        if (selectedDevices.has(key)) {
-            const userSelectedLinks = selectedLinks.get(key);
-            const links = userSelectedLinks ? group.links.filter(l => userSelectedLinks.has(l.interface)) : group.links;
-            if (links.length > 0) groupsToAdd.push({ ...group, links });
+        if (!selectedDevices.has(key)) return;
+
+        const userSelectedLinks = selectedLinks.get(key);
+        const candidateLinks = userSelectedLinks
+        ? group.links.filter(l => userSelectedLinks.has(l.interface))
+        : group.links;
+
+        const newLinks = [];
+
+        candidateLinks.forEach(link => {
+        const linkKey = buildLinkKey(
+            sourceHostname,
+            group.hostname,
+            link.interface
+        );
+
+        // 🔒 Skip if already exists OR already added in this batch
+        if (seenLinks.has(linkKey)) return;
+
+        seenLinks.add(linkKey);   // 👈 THIS IS THE CRITICAL LINE
+        newLinks.push(link);
+        });
+
+        if (newLinks.length > 0) {
+        groupsToAdd.push({
+            ...group,
+            links: newLinks
+        });
         }
     });
-    if (groupsToAdd.length > 0) onAddSelectedNeighbors(groupsToAdd);
-  };
+
+    if (groupsToAdd.length > 0) {
+        onAddSelectedNeighbors(groupsToAdd);
+    }
+};
+
 
   const handleSelectAllVisible = () => {
     const allSelected = filteredNeighbors.every(g => selectedDevices.has(getGroupKey(g)));
