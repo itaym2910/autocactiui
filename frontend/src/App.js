@@ -27,7 +27,6 @@ import * as api from './services/apiService';
 import { handleUploadProcess } from './services/mapExportService';
 import * as mapImportExport from './services/mapImportExportService';
 import { ICONS_BY_THEME } from './config/constants';
-
 import './App.css';
 import './components/TopToolbar/TopToolbar.css';
 import './components/ContextMenu/ContextMenu.css';
@@ -40,8 +39,6 @@ export const NodeContext = React.createContext(null);
 // DASHBOARD COMPONENT
 // ==========================================
 const Dashboard = ({ token, currentUser, onLogout }) => {
-  const { t } = useTranslation();
-
   const [error, setError] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [mapName, setMapName] = useState('My-Network-Map');
@@ -58,11 +55,13 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
   const [selectedCactiGroupId, setSelectedCactiGroupId] = useState('');
   const [showUploadPopup, setShowUploadPopup] = useState(false);
 
+  const { t } = useTranslation();
   const reactFlowWrapper = useRef(null);
   const reactFlowInstance = useRef(null);
 
   // --- Popup Handlers ---
   const handleShowNeighborPopup = useCallback((neighbors, sourceNode) => {
+    // console.log("App.js: Updating Neighbor Popup", { count: neighbors.length, node: sourceNode?.data?.hostname });
     setNeighborPopup({ isOpen: true, neighbors, sourceNode });
   }, []);
 
@@ -76,101 +75,62 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
       try {
         const response = await api.getCactiGroups();
         let loadedGroups = [];
-        if (response?.data?.data) loadedGroups = response.data.data;
-        else if (Array.isArray(response?.data)) loadedGroups = response.data;
-        else loadedGroups = response?.data || [];
+        if (response.data && response.data.data) {
+          loadedGroups = response.data.data;
+        } else if (Array.isArray(response.data)) {
+          loadedGroups = response.data;
+        } else {
+          loadedGroups = response.data || [];
+        }
         setCactiGroups(loadedGroups);
       } catch (err) {
-        console.error('Failed to load Cacti groups', err);
+        console.error("Failed to load Cacti groups", err);
       }
     };
 
-    if (token) fetchGroups();
+    if (token) {
+      fetchGroups();
+    }
   }, [token]);
 
   // --- MAP INTERACTION HOOK ---
   const {
-    nodes,
-    setNodes,
-    edges,
-    setEdges,
-    selectedElements,
-    snapLines,
-    currentNeighbors,
-    onNodesChange,
-    onNodeClick,
-    onPaneClick,
-    onSelectionChange,
-    handleDeleteElements,
-    handleUpdateNodeData,
-    handleAddGroup,
-    handleAddTextNode,
-    createNodeObject,
-    resetMap,
-    alignElements,
-    distributeElements,
-    bringForward,
-    sendBackward,
-    bringToFront,
-    sendToBack,
-    selectAllByType,
-    confirmNeighbor,
-    setLoading: setMapHookLoading,
-    setError: setMapHookError,
-    setState: setMapState,
+    nodes, setNodes, edges, setEdges, selectedElements, snapLines, currentNeighbors,
+    onNodesChange, onNodeClick, onPaneClick, onSelectionChange, handleDeleteElements,
+    handleUpdateNodeData, handleAddGroup, handleAddTextNode, createNodeObject,
+    resetMap, alignElements, distributeElements, bringForward, sendBackward,
+    bringToFront, sendToBack, selectAllByType, confirmNeighbor, 
+    // handleFullScan, // <--- Removed this to avoid the signature error
+    setLoading: setMapHookLoading, setError: setMapHookError, setState: setMapState,
   } = useMapInteraction(theme, handleShowNeighborPopup);
 
-  // --- MEMOS ---
-  const existingLinks = useMemo(() => {
-    const set = new Set();
-
-    edges.forEach(edge => {
-      const sourceNode = nodes.find(n => n.id === edge.source);
-      const targetNode = nodes.find(n => n.id === edge.target);
-      if (!sourceNode || !targetNode) return;
-
-      const iface = edge.data?.interface;
-      if (!iface) return;
-
-      const key = `${sourceNode.data.hostname}::${targetNode.data.hostname}::${iface}`;
-      set.add(key);
-    });
-
-    return set;
-  }, [edges, nodes]);
-
+  // --- Memos ---
   const nodeTypes = useMemo(() => ({ custom: CustomNode, group: GroupNode, text: TextNode }), []);
   const availableIcons = useMemo(() => Object.keys(ICONS_BY_THEME), []);
-
   const selectedCustomNode = useMemo(() =>
-    selectedElements.length === 1 && selectedElements[0].type === 'custom'
-      ? selectedElements[0]
-      : null,
+    selectedElements.length === 1 && selectedElements[0].type === 'custom' ? selectedElements[0] : null,
     [selectedElements]
   );
-
   const availableNeighbors = useMemo(() => {
     if (!selectedCustomNode) return [];
+    const existingConnections = new Set(
+      edges.filter(e => e.source === selectedCustomNode.id || e.target === selectedCustomNode.id)
+        .map(e => e.target)
+    );
     return currentNeighbors.filter(n => !nodes.some(node => node.id === n.ip));
-  }, [selectedCustomNode, currentNeighbors, nodes]);
+  }, [selectedCustomNode, currentNeighbors, nodes, edges]);
 
   // --- Helper Callbacks ---
-  const setIsLoading = useCallback(
-    value => {
-      setMapInteractionLoading(value);
-      setMapHookLoading(value);
-    },
-    [setMapHookLoading]
-  );
+  const setIsLoading = useCallback((value) => {
+    setMapInteractionLoading(value);
+    setMapHookLoading(value);
+  }, [setMapHookLoading]);
 
-  const setAppError = useCallback(
-    message => {
-      setError(message);
-      setMapHookError(message);
-      if (message) setTimeout(() => setError(''), 5000);
-    },
-    [setMapHookError]
-  );
+  const setAppError = useCallback((message) => {
+    setError(message);
+    setMapHookError(message);
+    if (message) setTimeout(() => setError(''), 5000);
+  }, [setMapHookError]);
 
   // --- Effects ---
   useEffect(() => {
@@ -181,10 +141,7 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
 
   // --- Map Handlers ---
   const handleStart = async (ip, initialIconName) => {
-    if (!ip) {
-      setAppError(t('app.errorStartIp'));
-      return;
-    }
+    if (!ip) { setAppError(t('app.errorStartIp')); return; }
     setIsLoading(true);
     setAppError('');
     try {
@@ -199,63 +156,63 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
     }
   };
 
-  const handleAddNeighborFromPopup = useCallback(
-    async neighborGroup => {
-      const { sourceNode } = neighborPopup;
-      if (!sourceNode) return;
-      await confirmNeighbor(neighborGroup, sourceNode.id, setIsLoading, setAppError, false);
-    },
-    [neighborPopup, confirmNeighbor, setIsLoading, setAppError]
-  );
+  const handleAddNeighborFromPopup = useCallback(async (neighborGroup) => {
+    const { sourceNode } = neighborPopup;
+    if (!sourceNode) return;
+    await confirmNeighbor(neighborGroup, sourceNode.id, setIsLoading, setAppError, false);
+  }, [neighborPopup, confirmNeighbor, setIsLoading, setAppError]);
 
-  const handleAddSelectedNeighbors = useCallback(
-    async selectedNeighborGroups => {
-      const { sourceNode } = neighborPopup;
-      if (!sourceNode || selectedNeighborGroups.length === 0) return;
-
-      setNeighborPopup(prev => ({ ...prev, isOpen: false }));
-      setIsLoading(true);
-
-      try {
-        for (const neighborGroup of selectedNeighborGroups) {
-          await confirmNeighbor(neighborGroup, sourceNode.id, setIsLoading, setAppError, true);
-        }
-      } catch (err) {
-        setAppError(t('app.errorAddNeighborGeneric'));
-      } finally {
-        setIsLoading(false);
+  const handleAddSelectedNeighbors = useCallback(async (selectedNeighborGroups) => {
+    const { sourceNode } = neighborPopup;
+    if (!sourceNode || selectedNeighborGroups.length === 0) return;
+    setNeighborPopup(prev => ({ ...prev, isOpen: false }));
+    setIsLoading(true);
+    try {
+      for (const neighborGroup of selectedNeighborGroups) {
+        await confirmNeighbor(neighborGroup, sourceNode.id, setIsLoading, setAppError, true);
       }
-    },
-    [neighborPopup, confirmNeighbor, setIsLoading, setAppError, t]
-  );
+    } catch (err) {
+      setAppError(t('app.errorAddNeighborGeneric'));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [neighborPopup, confirmNeighbor, setIsLoading, setAppError, t]);
 
   // ==========================================
-  // FULL SCAN HANDLER (LOCAL)
+  // NEW: LOCAL FULL SCAN HANDLER (FIX)
   // ==========================================
-  const handlePopupFullScan = useCallback(async () => {
+  const handlePopupFullScan = async () => {
     const node = neighborPopup.sourceNode;
     if (!node) {
-      setAppError('No source node selected for scan');
-      return;
+        setAppError("No source node selected for scan");
+        return;
     }
 
     setIsLoading(true);
     setAppError('');
-
+    
     try {
+      // Direct API call to avoid hook signature mismatches.
+      // Assumes api.getFullDeviceNeighbors exists (mapping to Python's get_full_device_neighbors)
+      // If your apiService uses a different name, please verify it (e.g. api.getDeviceNeighbors(ip, true))
       const response = await api.getFullDeviceNeighbors(node.id);
-      if (response?.data?.neighbors) {
-        setNeighborPopup(prev => ({ ...prev, neighbors: response.data.neighbors }));
+      
+      if (response && response.data && response.data.neighbors) {
+         // Update the popup state with the new extended list
+         setNeighborPopup(prev => ({
+            ...prev,
+            neighbors: response.data.neighbors
+         }));
       } else {
-        setAppError(t('app.noNeighborsFound'));
+         setAppError(t('app.noNeighborsFound'));
       }
     } catch (err) {
-      console.error('Full scan failed:', err);
-      setAppError(t('app.errorFullScan') || 'Full scan failed');
+      console.error("Full scan failed:", err);
+      setAppError(t('app.errorFullScan') || "Full scan failed");
     } finally {
       setIsLoading(false);
     }
-  }, [neighborPopup, setIsLoading, setAppError, t]);
+  };
 
   // ==========================================
   // UPLOAD LOGIC
@@ -274,7 +231,7 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
   const handleConfirmUpload = async () => {
     setShowUploadPopup(false);
     if (!selectedCactiGroupId) {
-      setAppError(t('app.errorSelectCacti') || 'No server group selected.');
+      setAppError(t('app.errorSelectCacti') || "No server group selected.");
       return;
     }
     setIsUploading(true);
@@ -288,7 +245,7 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
         cactiGroupId: selectedCactiGroupId,
         theme,
         setNodes,
-        setEdges,
+        setEdges
       });
       setUploadSuccessData(taskResponse);
       setMapName('My-Network-Map');
@@ -314,41 +271,28 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
         await writable.write(dataStr);
         await writable.close();
         return;
-      } catch (err) {
-        if (err.name === 'AbortError') return;
-      }
+      } catch (err) { if (err.name === 'AbortError') return; }
     }
     mapImportExport.downloadMapConfig(nodes, edges, mapName);
   }, [nodes, edges, mapName]);
 
   const handleDownloadPng = useCallback(async () => {
     const mapElement = document.querySelector('.react-flow');
-    if (!mapElement) {
-      setAppError('Map element not found');
-      return;
-    }
+    if (!mapElement) { setAppError('Map element not found'); return; }
     setIsLoading(true);
-
     const paths = mapElement.querySelectorAll('.react-flow__edge-path');
-    paths.forEach(path => {
-      path.style.fill = 'none';
-    });
+    paths.forEach(path => { path.style.fill = 'none'; });
 
     const fileName = `${mapName || 'network-map'}.png`;
     const options = {
       backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff',
       pixelRatio: 2,
-      filter: node =>
-        !['react-flow__controls', 'react-flow__minimap'].some(
-          cls => node.classList && node.classList.contains(cls)
-        ),
-      style: { fill: 'none' },
+      filter: (node) => !['react-flow__controls', 'react-flow__minimap'].some(cls => node.classList && node.classList.contains(cls)),
+      style: { 'fill': 'none' }
     };
-
     try {
       const blob = await htmlToImage.toBlob(mapElement, options);
       if (!blob) throw new Error('Failed to create image blob');
-
       if ('showSaveFilePicker' in window) {
         try {
           const handle = await window.showSaveFilePicker({
@@ -358,9 +302,7 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
           const writable = await handle.createWritable();
           await writable.write(blob);
           await writable.close();
-        } catch (fsErr) {
-          if (fsErr.name !== 'AbortError') throw fsErr;
-        }
+        } catch (fsErr) { if (fsErr.name !== 'AbortError') throw fsErr; }
       } else {
         const link = document.createElement('a');
         link.download = fileName;
@@ -369,40 +311,31 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
         URL.revokeObjectURL(link.href);
       }
     } catch (err) {
-      if (err.name !== 'AbortError') {
-        setAppError(t('app.errorDownloadPng') || 'Failed to generate image');
-      }
+      if (err.name !== 'AbortError') setAppError(t('app.errorDownloadPng') || 'Failed to generate image');
     } finally {
       setIsLoading(false);
     }
   }, [mapName, theme, setIsLoading, setAppError, t]);
 
-  const handleImportConfig = useCallback(
-    async file => {
-      setIsLoading(true);
-      setAppError('');
-      try {
-        const { nodes: impNodes, edges: impEdges, mapName: impName } =
-          await mapImportExport.importMapConfig(file);
-        setMapState({ nodes: impNodes, edges: impEdges });
-        setMapName(impName);
-      } catch (err) {
-        setAppError(t('app.errorImportMap'));
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [setMapState, setIsLoading, setAppError, t]
-  );
+  const handleImportConfig = useCallback(async (file) => {
+    setIsLoading(true);
+    setAppError('');
+    try {
+      const { nodes: impNodes, edges: impEdges, mapName: impName } = await mapImportExport.importMapConfig(file);
+      setMapState({ nodes: impNodes, edges: impEdges });
+      setMapName(impName);
+    } catch (err) {
+      setAppError(t('app.errorImportMap'));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [setMapState, t]);
 
   // --- Click Handlers ---
-  const onNodeClickHandler = useCallback(
-    (event, node) => {
-      setContextMenu(null);
-      onNodeClick(event, node, setIsLoading, setAppError);
-    },
-    [onNodeClick, setIsLoading, setAppError]
-  );
+  const onNodeClickHandler = useCallback((event, node) => {
+    setContextMenu(null);
+    onNodeClick(event, node, setIsLoading, setAppError);
+  }, [onNodeClick, setIsLoading, setAppError]);
 
   const onPaneClickHandler = useCallback(() => {
     onPaneClick();
@@ -410,20 +343,17 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
     setNeighborPopup(prev => ({ ...prev, isOpen: false }));
   }, [onPaneClick]);
 
-  const onPaneContextMenu = useCallback(event => {
+  const onPaneContextMenu = useCallback((event) => {
     event.preventDefault();
     setContextMenu(null);
     setNeighborPopup(prev => ({ ...prev, isOpen: false }));
   }, []);
 
-  const handleNodeContextMenu = useCallback(
-    (event, node) => {
-      event.preventDefault();
-      onNodeClick(event, node, setIsLoading, setAppError, true);
-      setContextMenu({ node, top: event.clientY, left: event.clientX });
-    },
-    [onNodeClick, setIsLoading, setAppError]
-  );
+  const handleNodeContextMenu = useCallback((event, node) => {
+    event.preventDefault();
+    onNodeClick(event, node, setIsLoading, setAppError, true);
+    setContextMenu({ node, top: event.clientY, left: event.clientX });
+  }, [onNodeClick, setIsLoading, setAppError]);
 
   return (
     <NodeContext.Provider value={{ onUpdateNodeData: handleUpdateNodeData }}>
@@ -440,6 +370,7 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
           setMapName={setMapName}
           isMapStarted={nodes.length > 0}
           isUploading={isUploading}
+
           selectAllByType={selectAllByType}
           onDeleteElements={handleDeleteElements}
           alignElements={alignElements}
@@ -450,12 +381,14 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
           sendToBack={sendToBack}
           onDownloadConfig={handleDownloadConfig}
           onDownloadPng={handleDownloadPng}
+
           neighbors={availableNeighbors}
-          onAddNeighbor={neighbor => {
+          onAddNeighbor={(neighbor) => {
             if (selectedCustomNode) {
               confirmNeighbor(neighbor, selectedCustomNode.id, setIsLoading, setAppError);
             }
           }}
+
           currentUser={currentUser}
           onOpenAdmin={() => setShowAdminPanel(true)}
         />
@@ -470,8 +403,7 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
             theme={theme}
             toggleTheme={toggleTheme}
           />
-
-          <div className="map-container">
+          <div className='map-container'>
             {nodes.length === 0 ? (
               <div className="startup-wrapper">
                 <StartupScreen
@@ -495,7 +427,7 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
                   onPaneContextMenu={onPaneContextMenu}
                   nodeTypes={nodeTypes}
                   theme={theme}
-                  setReactFlowInstance={instance => (reactFlowInstance.current = instance)}
+                  setReactFlowInstance={(instance) => (reactFlowInstance.current = instance)}
                 />
               </ReactFlowProvider>
             )}
@@ -504,9 +436,7 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
               <div className="download-popup-overlay">
                 <div className="download-popup-content">
                   <div className="popup-header">
-                    <h3 className="popup-title">
-                      {t('modals.upload.title') || 'Select Destination Group'}
-                    </h3>
+                    <h3 className="popup-title">{t('modals.upload.title') || "Select Destination Group"}</h3>
                     <p className="popup-description">{t('modals.upload.description')}</p>
                   </div>
                   <div className="popup-body">
@@ -514,34 +444,19 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
                       <select
                         className="popup-select-input"
                         value={selectedCactiGroupId}
-                        onChange={e => setSelectedCactiGroupId(e.target.value)}
+                        onChange={(e) => setSelectedCactiGroupId(e.target.value)}
                       >
-                        {cactiGroups.length === 0 && (
-                          <option disabled>{t('modals.upload.loading')}</option>
-                        )}
-                        {cactiGroups.map(group => (
-                          <option key={group.id} value={group.id}>
-                            {group.name}
-                          </option>
+                        {cactiGroups.length === 0 && <option disabled>{t('modals.upload.loading')}</option>}
+                        {cactiGroups.map((group) => (
+                          <option key={group.id} value={group.id}>{group.name}</option>
                         ))}
                       </select>
-                      <span className="custom-arrow" />
+                      <span className="custom-arrow"></span>
                     </div>
                   </div>
                   <div className="popup-footer">
-                    <button
-                      className="btn-cancel"
-                      onClick={() => setShowUploadPopup(false)}
-                    >
-                      {t('common.cancel')}
-                    </button>
-                    <button
-                      className="btn-confirm"
-                      onClick={handleConfirmUpload}
-                      disabled={!selectedCactiGroupId}
-                    >
-                      {t('modals.upload.confirm')}
-                    </button>
+                    <button className="btn-cancel" onClick={() => setShowUploadPopup(false)}>{t('common.cancel')}</button>
+                    <button className="btn-confirm" onClick={handleConfirmUpload} disabled={!selectedCactiGroupId}>{t('modals.upload.confirm')}</button>
                   </div>
                 </div>
               </div>
@@ -564,9 +479,7 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
             {error && <p className="error-message">{error}</p>}
 
             {(isUploading || mapInteractionLoading) && (
-              <p className="loading-message">
-                {isUploading ? t('app.processingMap') : t('app.loading')}
-              </p>
+              <p className="loading-message">{isUploading ? t('app.processingMap') : t('app.loading')}</p>
             )}
 
             <UploadSuccessPopup
@@ -575,13 +488,13 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
               onClose={() => setUploadSuccessData(null)}
             />
 
+            {/* --- UPDATED: Use local handler --- */}
             <NeighborsPopup
               isOpen={neighborPopup.isOpen}
               neighbors={neighborPopup.neighbors}
               sourceHostname={neighborPopup.sourceNode?.data?.hostname}
               onAddNeighbor={handleAddNeighborFromPopup}
               onAddSelectedNeighbors={handleAddSelectedNeighbors}
-              existingLinks={existingLinks}
               onClose={() => setNeighborPopup(prev => ({ ...prev, isOpen: false }))}
               isLoading={mapInteractionLoading}
               onFullScan={handlePopupFullScan}
@@ -592,6 +505,7 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
               onClose={() => setShowAdminPanel(false)}
               currentUser={currentUser}
             />
+
           </div>
         </div>
       </div>
@@ -608,13 +522,14 @@ function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(false);
   const [authError, setAuthError] = useState('');
-
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user_info');
-    if (storedUser) setCurrentUser(JSON.parse(storedUser));
+    if (storedUser) {
+      setCurrentUser(JSON.parse(storedUser));
+    }
   }, []);
 
   const handleLogin = async (username, password) => {
@@ -647,30 +562,8 @@ function App() {
 
   return (
     <Routes>
-      <Route
-        path="/login"
-        element={
-          !token ? (
-            <LoginScreen
-              onLogin={handleLogin}
-              error={authError}
-              isLoading={isAuthLoading}
-            />
-          ) : (
-            <Navigate to="/" replace />
-          )
-        }
-      />
-      <Route
-        path="/"
-        element={
-          token ? (
-            <Dashboard token={token} currentUser={currentUser} onLogout={handleLogout} />
-          ) : (
-            <Navigate to="/login" state={{ from: location }} replace />
-          )
-        }
-      />
+      <Route path="/login" element={!token ? <LoginScreen onLogin={handleLogin} error={authError} isLoading={isAuthLoading} /> : <Navigate to="/" replace />} />
+      <Route path="/" element={token ? <Dashboard token={token} currentUser={currentUser} onLogout={handleLogout} /> : <Navigate to="/login" state={{ from: location }} replace />} />
       <Route path="/403" element={<Forbidden />} />
       <Route path="/404" element={<NotFound />} />
       <Route path="*" element={<Navigate to="/404" replace />} />
