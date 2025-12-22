@@ -61,7 +61,6 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
 
   // --- Popup Handlers ---
   const handleShowNeighborPopup = useCallback((neighbors, sourceNode) => {
-    // console.log("App.js: Updating Neighbor Popup", { count: neighbors.length, node: sourceNode?.data?.hostname });
     setNeighborPopup({ isOpen: true, neighbors, sourceNode });
   }, []);
 
@@ -100,7 +99,6 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
     handleUpdateNodeData, handleAddGroup, handleAddTextNode, createNodeObject,
     resetMap, alignElements, distributeElements, bringForward, sendBackward,
     bringToFront, sendToBack, selectAllByType, confirmNeighbor, 
-    // handleFullScan, // <--- Removed this to avoid the signature error
     setLoading: setMapHookLoading, setError: setMapHookError, setState: setMapState,
   } = useMapInteraction(theme, handleShowNeighborPopup);
 
@@ -179,35 +177,109 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
   }, [neighborPopup, confirmNeighbor, setIsLoading, setAppError, t]);
 
   // ==========================================
-  // NEW: LOCAL FULL SCAN HANDLER (FIX)
+  // FULL SCAN HANDLER - FILTERS EXISTING EDGES
   // ==========================================
   const handlePopupFullScan = async () => {
     const node = neighborPopup.sourceNode;
     if (!node) {
-        setAppError("No source node selected for scan");
-        return;
+      console.error("❌ No source node selected for scan");
+      setAppError("No source node selected for scan");
+      return;
     }
+
+    console.log("🚀 FULL SCAN TRIGGERED");
+    console.log("📍 Source Node:", node.id, node.data?.hostname);
 
     setIsLoading(true);
     setAppError('');
     
     try {
-      // Direct API call to avoid hook signature mismatches.
-      // Assumes api.getFullDeviceNeighbors exists (mapping to Python's get_full_device_neighbors)
-      // If your apiService uses a different name, please verify it (e.g. api.getDeviceNeighbors(ip, true))
+      console.log("📡 Calling API: getFullDeviceNeighbors(" + node.id + ")");
       const response = await api.getFullDeviceNeighbors(node.id);
       
+      console.log("📡 API Response received:", response.data);
+      
       if (response && response.data && response.data.neighbors) {
-         // Update the popup state with the new extended list
-         setNeighborPopup(prev => ({
-            ...prev,
-            neighbors: response.data.neighbors
-         }));
+        console.log("📊 Total neighbors returned by API:", response.data.neighbors.length);
+        
+        // ✅ BUILD SET OF EXISTING EDGES ON MAP
+        const existingEdgeKeys = new Set();
+        edges.forEach(edge => {
+          if (edge.data?.interface) {
+            // Store edge keys as "source-target-interface" and "target-source-interface"
+            existingEdgeKeys.add(`${edge.source}-${edge.target}-${edge.data.interface}`);
+            existingEdgeKeys.add(`${edge.target}-${edge.source}-${edge.data.interface}`);
+          }
+        });
+        
+        console.log("🔑 Existing edge keys on map:", Array.from(existingEdgeKeys));
+        
+        // ✅ BUILD OBJECT OF NODES ON MAP (by hostname for devices without IP)
+        const nodesOnMapById = {};
+        const nodesOnMapByHostname = {};
+        
+        nodes.forEach(n => {
+          if (n.type === 'custom') {
+            if (n.data.ip) {
+              nodesOnMapById[n.data.ip] = n.id;
+            } else if (n.data.hostname) {
+              nodesOnMapByHostname[n.data.hostname] = n.id;
+            }
+          }
+        });
+        
+        console.log("📍 Nodes on map by IP:", Object.keys(nodesOnMapById));
+        console.log("📍 Nodes on map by hostname:", Object.keys(nodesOnMapByHostname));
+        
+        // ✅ FILTER OUT LINKS THAT ALREADY EXIST ON MAP
+        const filteredNeighbors = response.data.neighbors.filter(neighbor => {
+          const deviceKey = neighbor.ip || neighbor.hostname;
+          const deviceNodeId = neighbor.ip ? nodesOnMapById[neighbor.ip] : nodesOnMapByHostname[neighbor.hostname];
+          
+          // Check if device is on map
+          if (deviceNodeId) {
+            const edgeKey = `${node.id}-${deviceNodeId}-${neighbor.interface}`;
+            const linkExists = existingEdgeKeys.has(edgeKey);
+            
+            console.log(`  ${linkExists ? '⏭️  SKIP' : '✅ KEEP'}: ${neighbor.hostname} - ${neighbor.interface} (${linkExists ? 'already on map' : 'NEW'})`);
+            
+            return !linkExists; // Keep only if link doesn't exist
+          }
+          
+          // Device not on map - keep it
+          console.log(`  ✅ KEEP: ${neighbor.hostname} - ${neighbor.interface} (device not on map)`);
+          return true;
+        });
+        
+        console.log("📊 After filtering: ", filteredNeighbors.length, "new links to show");
+        
+        // ✅ MARK NEW LINKS AS FULL SCAN
+        const newNeighborsWithFlag = filteredNeighbors.map(n => ({
+          ...n,
+          isFullScan: true
+        }));
+        
+        // ✅ MERGE WITH EXISTING NEIGHBORS IN POPUP
+        const mergedNeighbors = [...neighborPopup.neighbors, ...newNeighborsWithFlag];
+        
+        console.log("📋 Merged neighbors:", mergedNeighbors.length, "total");
+        
+        setNeighborPopup(prev => ({
+          ...prev,
+          neighbors: mergedNeighbors
+        }));
+        
+        console.log("✅ Popup state updated with filtered full scan results");
+        
+        if (filteredNeighbors.length === 0) {
+          setAppError(t('app.noNewNeighborsFound') || 'No new neighbors found in full scan');
+        }
       } else {
-         setAppError(t('app.noNeighborsFound'));
+        console.error("❌ No neighbors in response");
+        setAppError(t('app.noNeighborsFound'));
       }
     } catch (err) {
-      console.error("Full scan failed:", err);
+      console.error("❌ Full scan failed:", err);
       setAppError(t('app.errorFullScan') || "Full scan failed");
     } finally {
       setIsLoading(false);
@@ -488,7 +560,6 @@ const Dashboard = ({ token, currentUser, onLogout }) => {
               onClose={() => setUploadSuccessData(null)}
             />
 
-            {/* --- UPDATED: Use local handler --- */}
             <NeighborsPopup
               isOpen={neighborPopup.isOpen}
               neighbors={neighborPopup.neighbors}

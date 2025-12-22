@@ -174,14 +174,21 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
   // --- 2. FULL SCAN ---
   const handleFullScan = useCallback(async (setLoading, setError) => {
     const sourceNode = selectedElements[0];
-    if (!sourceNode || !sourceNode.data.ip) return;
+    if (!sourceNode || !sourceNode.data.ip) {
+      console.log("❌ Full Scan: No source node or no IP");
+      return;
+    }
 
+    console.log("🚀 FULL SCAN TRIGGERED for:", sourceNode.data.hostname, sourceNode.data.ip);
     setLoading(true);
     setError('');
 
     try {
       const response = await api.getFullDeviceNeighbors(sourceNode.data.ip);
       const allNeighbors = response.data.neighbors;
+
+      console.log("📡 Full Scan API Response - Total neighbors:", allNeighbors.length);
+      console.log("📡 Full Scan neighbors details:", allNeighbors);
 
       allNeighbors.forEach(neighbor => {
         if (neighbor.ip) api.getDeviceInfo(neighbor.ip).catch(() => { });
@@ -191,25 +198,94 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
         if (!prev) return prev;
 
         const nodesWithoutPreviews = prev.nodes.filter(n => !n.data.isPreview);
+        const edgesWithoutPreviews = prev.edges.filter(e => !e.data.isPreview);
+
         const nodeIdsOnMap = new Set(nodesWithoutPreviews.map(n => n.id));
         const hostnamesOnMap = new Set(nodesWithoutPreviews.filter(n => n.data?.hostname).map(n => n.data.hostname));
 
-        const potentialNeighbors = allNeighbors.filter(n => {
-          if (n.ip) return !nodeIdsOnMap.has(n.ip);
-          return !hostnamesOnMap.has(n.hostname);
+        console.log("🔍 Full Scan Starting...");
+        console.log("📋 Nodes on map:", nodesWithoutPreviews.map(n => ({
+          id: n.id,
+          hostname: n.data?.hostname,
+          hasIp: !!n.data?.ip
+        })));
+        console.log("📋 Edges on map:", edgesWithoutPreviews.map(e => ({
+          source: e.source,
+          target: e.target,
+          interface: e.data?.interface
+        })));
+
+        // ✅ NEW: Build a set of existing edge keys: "nodeId-interface"
+        const existingEdgeKeys = new Set();
+        edgesWithoutPreviews.forEach(edge => {
+          // For each edge, store both directions with their interfaces
+          if (edge.data?.interface) {
+            existingEdgeKeys.add(`${edge.source}-${edge.target}-${edge.data.interface}`);
+            existingEdgeKeys.add(`${edge.target}-${edge.source}-${edge.data.interface}`);
+          }
         });
 
+        console.log("🔑 Existing edge keys:", Array.from(existingEdgeKeys));
+        console.log("📥 Full scan returned neighbors:", allNeighbors.map(n => ({
+          hostname: n.hostname,
+          interface: n.interface,
+          hasIp: !!n.ip
+        })));
+
+        const potentialNeighbors = allNeighbors.filter(n => {
+          console.log(`\n🔍 Processing: ${n.hostname} - ${n.interface}`);
+
+          // First check: Is the device itself already on the map as a node?
+          if (n.ip && nodeIdsOnMap.has(n.ip)) {
+            console.log(`  ⏭️  SKIP: Device ${n.hostname} (${n.ip}) already on map as a node`);
+            return false;
+          }
+
+          if (!n.ip && hostnamesOnMap.has(n.hostname)) {
+            console.log(`  ℹ️  Device ${n.hostname} exists on map (no IP) - checking if link exists...`);
+
+            // ✅ Device exists on map - check if THIS SPECIFIC LINK already exists
+            const deviceNodeOnMap = nodesWithoutPreviews.find(node =>
+              node.data?.hostname === n.hostname && (!node.data?.ip || node.data?.ip === '')
+            );
+
+            if (deviceNodeOnMap) {
+              console.log(`  📍 Found device node: ${deviceNodeOnMap.id}`);
+
+              // Check if edge for this interface already exists
+              const edgeKey = `${sourceNode.id}-${deviceNodeOnMap.id}-${n.interface}`;
+              const linkExists = existingEdgeKeys.has(edgeKey);
+
+              console.log(`  🔑 Checking edge key: ${edgeKey}`);
+              console.log(`  ${linkExists ? '⏭️  SKIP' : '✅ INCLUDE'}: Link ${linkExists ? 'already exists' : 'is NEW'}`);
+
+              return !linkExists; // Only include if link doesn't exist
+            }
+          }
+
+          // Device is not on map at all
+          console.log(`  ✅ INCLUDE: Device not on map yet`);
+          return true;
+        });
+
+        console.log(`\n📊 After filtering: ${potentialNeighbors.length} potential neighbors`);
+
         const existingRegularKeys = new Set(
-          currentNeighborsRef.current.map(n => n.ip || n.hostname)
+          currentNeighborsRef.current.map(n => `${n.ip || n.hostname}-${n.interface}`)
         );
 
         const newFullScanNeighbors = [];
         potentialNeighbors.forEach(n => {
-          const key = n.ip || n.hostname;
+          const key = `${n.ip || n.hostname}-${n.interface}`;
           if (!existingRegularKeys.has(key)) {
+            console.log(`  ✅ Adding to full scan results: ${n.hostname} - ${n.interface}`);
             newFullScanNeighbors.push({ ...n, isFullScan: true });
+          } else {
+            console.log(`  ⏭️  Already in current neighbors: ${n.hostname} - ${n.interface}`);
           }
         });
+
+        console.log(`📊 Full Scan Results: ${newFullScanNeighbors.length} new links found`);
 
         const combinedNeighbors = [...currentNeighborsRef.current, ...newFullScanNeighbors];
 
@@ -227,124 +303,102 @@ export const useMapInteraction = (theme, onShowNeighborPopup) => {
     }
   }, [selectedElements, setState, t, onShowNeighborPopup]);
 
-  // --- 3. CONFIRM NEIGHBOR ---
+  // --- 3. CONFIRM NEIGHBOR (FIXED) ---
   const confirmNeighbor = useCallback(async (neighborGroup, sourceNodeId, setLoading, setError, isBatchOperation = false) => {
     setLoading(true);
     setError('');
 
-    const isEndDevice = !neighborGroup.ip;
     const neighborIp = neighborGroup.ip;
     const hostname = neighborGroup.hostname;
 
-    const handleStateUpdate = (prev, newNode, newEdges = []) => {
-      const sourceNode = prev.nodes.find(n => n.id === sourceNodeId);
-      if (!sourceNode) return prev;
+    console.log("🔍 confirmNeighbor starting:", { hostname, neighborIp, sourceNodeId });
 
-      const nodesWithoutOld = prev.nodes.filter(n => !n.data.isPreview && n.id !== newNode.id);
-      const edgesWithoutPreviews = prev.edges.filter(e => !e.data.isPreview);
-
-      const nextNodes = [...nodesWithoutOld, newNode];
-      nextNodes.forEach(n => n.selected = n.id === sourceNodeId);
-
-      const nextEdges = [...edgesWithoutPreviews, ...newEdges];
-      setSelectedElements([sourceNode]);
-
-      const permanentNodeIpsOnMap = new Set(nextNodes.filter(n => n.data.ip).map(n => n.data.ip));
-
-      const remainingNeighbors = currentNeighborsRef.current.filter(n => {
-        if (n.ip) return !permanentNodeIpsOnMap.has(n.ip);
-        const key = `${n.hostname}-${n.interface}`;
-        const addedLinks = new Set(neighborGroup.links.map(l => `${l.hostname}-${l.interface}`));
-        return !addedLinks.has(key);
-      });
-      setCurrentNeighbors(remainingNeighbors);
-
-      if (!isBatchOperation) {
-        onShowNeighborPopup(remainingNeighbors, sourceNode);
-      }
-
-      return { nodes: nextNodes, edges: nextEdges };
-    };
-
-    if (isEndDevice) {
+    try {
       setState(prev => {
         const sourceNode = prev.nodes.find(n => n.id === sourceNodeId);
         if (!sourceNode) return prev;
 
-        // 1. Calculate position (same as before)
-        const position = { x: sourceNode.position.x + (Math.random() * 300 - 150), y: sourceNode.position.y + 200 };
-
-        // 2. Create the Node (same as before)
-        const newNode = createNodeObject({ ip: '', hostname: hostname, type: 'Switch' }, position);
-
-        // 3. ✅ FIX: Loop through ALL links to create multiple edges
-        const newEdges = neighborGroup.links.map(linkInfo =>
-          createEdgeObject(sourceNodeId, newNode.id, linkInfo, false)
-        );
-
-        // 4. Pass the array of edges to the update function
-        return handleStateUpdate(prev, newNode, newEdges);
-      });
-      setLoading(false);
-      return;
-    }
-
-    try {
-      let confirmedNode;
-      const existingNode = nodesRef.current.find(n => n.id === neighborIp);
-
-      if (existingNode) {
-        confirmedNode = existingNode;
-      } else {
-        const sourceNode = nodesRef.current.find(n => n.id === sourceNodeId);
-        const position = { x: sourceNode.position.x + (Math.random() * 300 - 150), y: sourceNode.position.y + 200 };
-
-        try {
-          const deviceResponse = await api.getDeviceInfo(neighborIp);
-          const deviceData = deviceResponse.data;
-          if (!deviceData.type) {
-            deviceData.type = 'Unknown';
+        // 1. FIND EXISTING NODE: Search map by IP OR by Hostname
+        const existingNode = prev.nodes.find(n => {
+          if (n.type !== 'custom') return false;
+          // Match by IP if both have it
+          if (neighborIp && n.data.ip === neighborIp) return true;
+          // Match by Hostname (case insensitive)
+          if (hostname && n.data.hostname &&
+            n.data.hostname.toLowerCase().trim() === hostname.toLowerCase().trim()) {
+            return true;
           }
-          confirmedNode = createNodeObject(deviceData, position);
-        } catch (infoError) {
-          const fallbackDeviceData = { ip: neighborIp, hostname: hostname, type: 'Unknown' };
-          confirmedNode = createNodeObject(fallbackDeviceData, position, 'Unknown');
-        }
-      }
-
-      let allNeighborsOfNewNode = [];
-      try {
-        const neighborsResponse = await api.getDeviceNeighbors(neighborIp);
-        if (neighborsResponse.data.neighbors) {
-          allNeighborsOfNewNode = neighborsResponse.data.neighbors;
-        }
-      } catch (neighborError) { }
-
-      setState(prev => {
-        const newEdgesFromSource = neighborGroup.links.map(link =>
-          createEdgeObject(sourceNodeId, confirmedNode.id, link, false)
-        );
-        let tempState = handleStateUpdate(prev, confirmedNode, newEdgesFromSource);
-        const permanentNodeIdsOnMap = new Set(tempState.nodes.map(n => n.id));
-        const existingEdgeIds = new Set(tempState.edges.map(e => e.id));
-        const neighborsToConnect = allNeighborsOfNewNode.filter(n =>
-          n.ip && n.ip !== sourceNodeId && permanentNodeIdsOnMap.has(n.ip)
-        );
-        neighborsToConnect.forEach(neighbor => {
-          const edgeId = `e-${confirmedNode.id}-${neighbor.ip}-${neighbor.interface.replace(/[/]/g, '-')}`;
-          if (!existingEdgeIds.has(edgeId)) {
-            tempState.edges.push(createEdgeObject(confirmedNode.id, neighbor.ip, neighbor, false));
-          }
+          return false;
         });
-        return tempState;
+
+        const edgesWithoutPreviews = prev.edges.filter(e => !e.data.isPreview);
+        let nextNodes = [...prev.nodes.filter(n => !n.data.isPreview)];
+        let nextEdges = [...edgesWithoutPreviews];
+
+        if (existingNode) {
+          console.log("✅ Found existing node on map, adding links only:", existingNode.id);
+
+          // 2. ADD ONLY NEW EDGES
+          neighborGroup.links.forEach(linkInfo => {
+            const edgeId = `e-${sourceNodeId}-${existingNode.id}-${linkInfo.interface?.replace(/[/]/g, '-') || 'unknown'}`;
+            const alreadyExists = nextEdges.some(e => e.id === edgeId);
+
+            if (!alreadyExists) {
+              console.log("  ➕ Adding new link:", linkInfo.interface);
+              nextEdges.push(createEdgeObject(sourceNodeId, existingNode.id, linkInfo, false));
+            }
+          });
+        } else {
+          console.log("🆕 No existing node found, creating new one.");
+
+          // 3. CREATE NEW NODE (Logic moved inside setState to be safe)
+          const position = {
+            x: sourceNode.position.x + (Math.random() * 300 - 150),
+            y: sourceNode.position.y + 200
+          };
+
+          // Note: createNodeObject is called here. 
+          // If neighborIp is null, it will generate a random ID.
+          const newNode = createNodeObject(
+            { ip: neighborIp || '', hostname: hostname, type: neighborGroup.type || 'Switch' },
+            position
+          );
+
+          nextNodes.push(newNode);
+
+          neighborGroup.links.forEach(linkInfo => {
+            nextEdges.push(createEdgeObject(sourceNodeId, newNode.id, linkInfo, false));
+          });
+        }
+
+        // 4. UPDATE CURRENT NEIGHBORS (To remove the added items from the popup)
+        const addedLinkKeys = new Set(neighborGroup.links.map(l => `${l.hostname}-${l.interface}`));
+
+        setCurrentNeighbors(prevNeighbors => {
+          const remaining = prevNeighbors.filter(n => {
+            const key = `${n.hostname}-${n.interface}`;
+            return !addedLinkKeys.has(key);
+          });
+
+          // Refresh popup if not in batch mode
+          if (!isBatchOperation) {
+            onShowNeighborPopup(remaining, sourceNode);
+          }
+          return remaining;
+        });
+
+        // Ensure the source node remains selected
+        nextNodes = nextNodes.map(n => ({ ...n, selected: n.id === sourceNodeId }));
+
+        return { nodes: nextNodes, edges: nextEdges };
       });
     } catch (err) {
-      setError(t('app.errorAddNeighbor', { ip: neighborIp }));
-      clearPreviewElements();
+      console.error("Error in confirmNeighbor:", err);
+      setError(t('app.errorAddNeighbor', { ip: neighborIp || hostname }));
     } finally {
       setLoading(false);
     }
-  }, [createNodeObject, t, onShowNeighborPopup, setState, clearPreviewElements]);
+  }, [createNodeObject, t, onShowNeighborPopup, setState]);
 
   const confirmPreviewNode = useCallback(async (nodeToConfirm, setLoading, setError) => {
     const edge = edgesRef.current.find(e => e.target === nodeToConfirm.id && e.data.isPreview);

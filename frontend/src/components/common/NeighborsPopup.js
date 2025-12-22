@@ -150,6 +150,17 @@ const NeighborsPopup = ({
     }
   }, [isOpen]);
 
+  // --- DEBUG LOGGING ---
+  useEffect(() => {
+    console.log("🎯 NeighborsPopup received neighbors:", neighbors.length);
+    console.log("📋 Neighbor details received by popup:", neighbors.map(n => ({
+      hostname: n.hostname,
+      interface: n.interface,
+      ip: n.ip,
+      isFullScan: n.isFullScan
+    })));
+  }, [neighbors]);
+
   useEffect(() => {
     const handleEscape = (e) => {
         if (e.key === "Escape") {
@@ -325,10 +336,7 @@ const NeighborsPopup = ({
                   <div className="neighbor-info">
                     <strong>{group.hostname}</strong>
                     <small>{group.ip || ' '}</small>
-                    
-                    {/* --- REMOVED: interface text list --- */}
 
-                    {/* --- UPDATED: Always show the link count button so number is visible --- */}
                     {linkCount > 0 && (
                         <button 
                             className={`link-count-badge ${isPartial ? 'partial' : ''}`} 
